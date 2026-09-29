@@ -513,6 +513,10 @@ def run_batch(input_paths: list[str], args: argparse.Namespace, config: dict, ba
         if decision == "accepted":
             entry["decision"] = "accepted"
 
+    # --phase1-only: one combined phase_1.csv for the whole list, next to
+    # each file's own (src/export/phase1_exporter.py).
+    phase1_names: dict | None = {} if config.get("phase1_only") else None
+
     for input_path in input_paths:
         stem = Path(input_path).stem
         output_dir = base_output / stem
@@ -521,10 +525,21 @@ def run_batch(input_paths: list[str], args: argparse.Namespace, config: dict, ba
             failures += 1
             continue
         source_filename = Path(input_path).name
+        if phase1_names is not None:
+            from src.export.phase1_exporter import add_phase1_names
+            add_phase1_names(phase1_names, result, source_filename)
+            continue
         for person in result.persons:
             _merge(person, "accepted", source_filename)
         for person in result.review_persons:
             _merge(person, "review", source_filename)
+
+    if phase1_names is not None:
+        from src.export.phase1_exporter import phase1_path, write_phase1_csv
+        path = write_phase1_csv(phase1_path(base_output), phase1_names)
+        print(f"\nPhase 1, all {len(input_paths)} files combined: {len(phase1_names)} distinct names "
+              f"entering the firewall -> {path}")
+        return 1 if failures else 0
 
     # Batch-level boundary refinement: a noise variant that didn't
     # dominate within any single file (e.g. "Testing Corvin Hale"
