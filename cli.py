@@ -73,6 +73,25 @@ def _print_section(title: str) -> None:
     print("-" * 78)
 
 
+def _report_phase1(input_path: str, result, output_dir: Path):
+    """--phase1-only: summarises and saves the raw detections (see
+    src/export/phase1_exporter.py) instead of the extraction report."""
+    from collections import Counter
+    from src.export.phase1_exporter import phase1_rows, write_phase1_csv
+    _print_header("PERSON_EXTRACTOR_V4 - PHASE 1 OUTPUT (ingestion and detection)")
+    print(f"Source file : {input_path}")
+    skipped = result.model_info.get("skipped_reason")
+    if skipped:
+        print(f"Skipped at ingestion ({skipped}) - no detections. Use --no-language-filter to force it.")
+    rows = phase1_rows(result, str(input_path))
+    print(f"Raw detections: {len(rows)}  (before validation, the ML classifier or any decision)")
+    for (detector, pattern), n in Counter((r[1], r[2]) for r in rows).most_common():
+        print(f"  {detector:<12} {pattern:<26} {n}")
+    path = write_phase1_csv(output_dir / f"{Path(input_path).stem}_phase1_detections.csv", rows)
+    print(f"Saved to    : {path}")
+    return result
+
+
 def run_extraction(input_path: str, output_dir: Path, args: argparse.Namespace, config: dict):
     """Runs the pipeline on one input file, prints/exports its report,
     and returns the ExtractionResult (result.success indicates outcome)
@@ -85,6 +104,9 @@ def run_extraction(input_path: str, output_dir: Path, args: argparse.Namespace, 
         logger.error("Extraction failed for %s: %s", input_path, result.error)
         print(f"FAILED: {result.error}", file=sys.stderr)
         return result
+
+    if config.get("phase1_only"):
+        return _report_phase1(input_path, result, output_dir)
 
     if getattr(args, "names_only", False):
         return result  # caller writes the plain names CSV itself, nothing else
@@ -190,6 +212,8 @@ def _build_config(args: argparse.Namespace) -> dict:
         config["language_filter"]["enabled"] = False
     if getattr(args, "no_llm_review", False):
         config["llm_reviewer"]["enabled"] = False
+    if getattr(args, "phase1_only", False):
+        config["phase1_only"] = True
     config["detection"]["spacy_processes"] = getattr(args, "spacy_processes", 1)
     return config
 
@@ -602,6 +626,8 @@ def main() -> int:
                               "non-English text, translated legal/EULA boilerplate, etc. - "
                               "instead of running detection on them and producing false "
                               "positives from cross-language word collisions.")
+    parser.add_argument("--phase1-only", action="store_true",
+                         help="Output only Phase 1 (ingestion and detection): every raw detection from the regex, dictionary and spaCy detectors, with its location, before validation, the ML classifier or any decision. Written to a *_phase1_detections CSV.")
     parser.add_argument("--no-llm-review", action="store_true",
                          help="Skip the optional local-LLM reviewer (src/review/llm_reviewer.py) this run, even on a GPU machine where it would be used. It moves accepted names a local model doubts to REVIEW; on the 2026-09-28 real-case scan it removed 14 wrong names and made the scan 2.5x longer (40.0 vs 16.2 min).")
     parser.add_argument("--spacy-processes", type=int, default=1,

@@ -499,6 +499,11 @@ class ExtractionResult:
     error: str | None = None
     statistics: PipelineStatistics = field(default_factory=PipelineStatistics)
     model_info: dict[str, Any] = field(default_factory=dict)
+    # Phase 1 only (config["phase1_only"], cli.py / scan_directory.py
+    # --phase1-only): every raw detection with its location, as the
+    # detectors hand it on - before candidate building, validation, the ML
+    # classifier or any decision. Empty in a normal run.
+    detections: tuple[tuple[Detection, TextLocation], ...] = ()
 
 
 @dataclass(slots=True)

@@ -150,3 +150,14 @@ def test_no_llm_review_option_switches_it_off_in_the_scan_and_the_cli():
     assert scan_config(argparse.Namespace(**flags, no_llm_review=False))["llm_reviewer"]["enabled"] == "auto"
     assert scan_config(argparse.Namespace(**flags, no_llm_review=True))["llm_reviewer"]["enabled"] is False
     assert cli._build_config(argparse.Namespace(no_llm_review=True))["llm_reviewer"]["enabled"] is False
+
+
+def test_phase1_only_option_in_the_scan_and_the_cli():
+    import argparse
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    import cli
+    from scan_directory import _build_config as scan_config
+    flags = dict(no_feedback_log=False, loose_gate=False, no_language_filter=False, no_llm_review=False)
+    assert scan_config(argparse.Namespace(**flags, phase1_only=True))["phase1_only"] is True
+    assert "phase1_only" not in scan_config(argparse.Namespace(**flags, phase1_only=False))
+    assert cli._build_config(argparse.Namespace(phase1_only=True))["phase1_only"] is True

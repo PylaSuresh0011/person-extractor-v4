@@ -62,6 +62,7 @@ from src.pipeline.orchestrator import Pipeline
 from src.utils.logger import configure_logging, get_logger
 from src.utils.provenance import build_run_provenance, provenance_summary_line
 from src.review.llm_reviewer import resolve_status
+from src.export.phase1_exporter import COLUMNS as PHASE1_COLUMNS, phase1_rows
 
 logger = get_logger("scripts.scan_directory")
 
@@ -119,6 +120,8 @@ def _build_config(args: argparse.Namespace) -> dict:
         config["language_filter"]["enabled"] = False
     if args.no_llm_review:
         config["llm_reviewer"]["enabled"] = False
+    if getattr(args, "phase1_only", False):
+        config["phase1_only"] = True
     return config
 
 
@@ -193,7 +196,7 @@ def run_scan(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> int
     # The optional LLM reviewer (src/review/llm_reviewer.py) is resolved once
     # here, not by every worker (each would load and check the model), and
     # the verdict is passed to them in the config.
-    llm_settings = config.get("llm_reviewer", {})
+    llm_settings = config.get("llm_reviewer", {}) if not config.get("phase1_only") else {}
     if llm_settings:
         status = resolve_status(llm_settings)
         llm_settings["resolved"] = {"active": status.active, "reason": status.reason}
@@ -233,6 +236,13 @@ def run_scan(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> int
 
     files_csv_path = _fresh_csv_path(output_dir, f"{folder_tag}_files", timestamp)
     names_csv_path = _fresh_csv_path(output_dir, f"{folder_tag}_names", timestamp)
+    # --phase1-only: raw detections instead of names (src/export/phase1_exporter.py)
+    phase1_csv_path = _fresh_csv_path(output_dir, f"{folder_tag}_phase1_detections", timestamp) if args.phase1_only else None
+    phase1_file = phase1_csv_path.open("w", newline="", encoding="utf-8") if phase1_csv_path else None
+    phase1_writer = csv.writer(phase1_file) if phase1_file else None
+    if phase1_writer:
+        phase1_writer.writerow(PHASE1_COLUMNS)
+    total_detections = 0
     summary_csv_path = _fresh_csv_path(output_dir, f"{folder_tag}_summary", timestamp)
 
     # workers=1 keeps the original single-process behavior verbatim (one
@@ -337,6 +347,15 @@ def run_scan(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> int
                 skipped_binary += 1
                 continue
 
+            if phase1_writer is not None:
+                rows = phase1_rows(result, str(rel_path))
+                phase1_writer.writerows(rows)
+                writer.writerow([str(rel_path), "ok (phase 1)", len(rows), "", f"{seconds:.4f}"])
+                total_detections += len(rows)
+                if i % 25 == 0 or i == len(input_files):
+                    print(f"  [{i}/{len(input_files)}] {rel_path} -> {len(rows)} detection(s) ({seconds:.2f}s)")
+                continue
+
             persons = list(result.persons)
             if args.include_review:
                 persons = persons + list(result.review_persons)
@@ -362,6 +381,8 @@ def run_scan(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> int
                 print(f"  [{i}/{len(input_files)}] {rel_path} -> {len(persons)} name(s) ({seconds:.2f}s)")
 
     total_seconds = time.perf_counter() - scan_start
+    if phase1_file:
+        phase1_file.close()
 
     combined = refine_combined_counts(combined)
     ordered = sorted(combined.values(), key=lambda e: e["occurrences"], reverse=True)
@@ -398,6 +419,9 @@ def run_scan(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> int
         writer.writerow(["files_skipped_non_english", skipped_non_english])
         writer.writerow(["files_skipped_no_extractable_text", skipped_no_text])
         writer.writerow(["files_skipped_binary_content", skipped_binary])
+        if phase1_csv_path:
+            writer.writerow(["phase1_detections", total_detections])
+            writer.writerow(["phase1_csv", str(phase1_csv_path)])
         writer.writerow(["files_failed", failures])
         writer.writerow(["coverage_pct_of_all_files", f"{coverage_pct_of_all_files:.2f}"])
         for key, value in provenance.items():
@@ -441,6 +465,8 @@ def run_scan(input_dir: Path, output_dir: Path, args: argparse.Namespace) -> int
     print(f"  Per-file CSV  : {files_csv_path}")
     print(f"  Combined CSV  : {names_csv_path}")
     print(f"  Summary CSV   : {summary_csv_path}")
+    if phase1_csv_path:
+        print(f"  Phase 1 CSV   : {phase1_csv_path}  ({total_detections} raw detections)")
 
     return 1 if failures else 0
 
@@ -464,6 +490,8 @@ def main() -> int:
                          help="Disable the English-language gate (on by default) that skips "
                               "files which aren't natural-language English prose - see "
                               "cli.py --no-language-filter")
+    parser.add_argument("--phase1-only", action="store_true",
+                         help="Output only Phase 1 (ingestion and detection): every raw detection from the regex, dictionary and spaCy detectors, with its location, before validation, the ML classifier or any decision. Written to a *_phase1_detections CSV.")
     parser.add_argument("--no-llm-review", action="store_true",
                          help="Skip the optional local-LLM reviewer (src/review/llm_reviewer.py) this run, even on a GPU machine where it would be used. It moves accepted names a local model doubts to REVIEW; on the 2026-09-28 real-case scan it removed 14 wrong names and made the scan 2.5x longer (40.0 vs 16.2 min).")
     parser.add_argument("--exclude", action="append", default=[], metavar="PATTERN",

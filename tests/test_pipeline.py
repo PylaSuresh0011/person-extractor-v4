@@ -254,3 +254,23 @@ def test_pipeline_holds_a_lone_word_from_a_tiny_ocr_scrap_for_review(tmp_path):
     # capped - the same scrap sent as text keeps its previous decision.
     live = Pipeline(config=_test_config(), base_dir=BASE_DIR).run_text("0g ~~ | Suresh 8 ~ ఇ అ ## 4)\n")
     assert "Suresh" in {p.display_text for p in live.persons}
+
+
+def test_phase1_only_returns_raw_detections_and_no_decisions(tmp_path):
+    # --phase1-only (2026-09-29): Phase 1 of the architecture - ingestion and
+    # the regex/dictionary/spaCy detectors - with nothing validated or decided.
+    from src.export.phase1_exporter import COLUMNS, phase1_rows
+    cfg = _test_config()
+    cfg["phase1_only"] = True
+    sample = _write_sample(tmp_path)
+    result = Pipeline(config=cfg, base_dir=BASE_DIR).run(sample)
+    assert result.success and not result.persons and not result.review_persons and not result.rejected
+    detectors = {d.detector.value for d, _ in result.detections}
+    patterns = {d.metadata.get("pattern") for d, _ in result.detections}
+    assert detectors == {"regex", "dictionary", "spacy"} and "titled" in patterns
+    # Noise the later phases remove is still here - that's the point.
+    assert any(d.text.startswith("Jai") for d, _ in result.detections)
+    rows = phase1_rows(result, "sample.txt")
+    assert len(rows) == len(result.detections) and len(rows[0]) == len(COLUMNS)
+    titled = next(r for r in rows if r[2] == "titled" and "Suresh" in r[3])
+    assert titled[5] == 1 and SAMPLE_TEXT[titled[7]:titled[8]] == titled[3]  # line 1, exact offsets

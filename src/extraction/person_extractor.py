@@ -103,6 +103,9 @@ class PersonExtractor(Extractor):
         self.feedback_store = FeedbackStore(self.base_dir / "datasets" / "feedback")
 
         self.language_filter_enabled = config.get("language_filter", {}).get("enabled", True)
+        # Stop after detection and return the raw detections - see
+        # ExtractionResult.detections.
+        self.phase1_only = config.get("phase1_only", False)
 
         # Optional local-LLM reviewer (src/review/llm_reviewer.py). Resolved
         # on the first FILE, so live text (server.py) never loads a model; a
@@ -184,6 +187,18 @@ class PersonExtractor(Extractor):
             else:
                 detections = self.detector_manager.detect_all(cleaned_text, page_index=0)
             stats.raw_detections = len(detections)
+
+        if self.phase1_only:
+            located = tuple((d, line_index.locate(d.start, d.end))
+                            for d in sorted(detections, key=lambda d: (d.start, d.end, d.detector.value)))
+            return ExtractionResult(
+                success=True, source_path=input_path, statistics=stats, detections=located,
+                model_info={
+                    "detectors_enabled": [d.name.value for d in self.detector_manager.detectors],
+                    "phase": "phase 1 only (ingestion and detection)",
+                    **self.provenance,
+                },
+            )
 
         with timed_stage("candidate_factory", stats.stage_timings):
             all_candidates: list[CandidateResult] = candidate_factory.build(detections)

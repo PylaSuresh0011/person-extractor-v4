@@ -525,6 +525,21 @@ containing an exempted hostname (of 19,089): no ACCEPTED change, no name
 gained or lost in REVIEW; "Edit" (already in REVIEW) +4 mentions in one
 preferences XML.
 
+**2026-09-29 - Phase 1 output on its own (`--phase1-only`).** Outputs only
+what ingestion and the three detectors (regex, dictionary, spaCy) produce -
+every raw detection with its detector, pattern, confidence and location -
+before the validation firewall, the ML classifier, the LLM reviewer or any
+decision. Files the English-prose gate skips still get no detections, as in
+a normal run.
+```
+python cli.py --input file.txt --phase1-only          # -> <file>_phase1_detections.csv
+python scripts/scan_directory.py --input-dir <folder> --phase1-only
+```
+The scan writes `<folder>_phase1_detections_<time>.csv` (columns:
+source_file, detector, pattern, text, page, line, column, char_start,
+char_end, confidence) next to its usual per-file and summary CSVs. On the
+7 benchmark text files: 10,903 raw detections, against 1,335 labelled names.
+
 **2026-09-28 - optional local-LLM reviewer (exp09, owner-approved trade).**
 On a machine with a GPU, each file's ACCEPTED names are checked by a local
 model (Llama 3.1 8B through Ollama; nothing leaves the machine): from up to
