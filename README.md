@@ -525,6 +525,16 @@ containing an exempted hostname (of 19,089): no ACCEPTED change, no name
 gained or lost in REVIEW; "Edit" (already in REVIEW) +4 mentions in one
 preferences XML.
 
+**2026-09-29 - a small window (`gui.py`).** Double-click `run_gui.bat` (or
+run `.venv\Scripts\python gui.py`): paste file or folder paths, one per
+line - quotes from Explorer's "Copy as path" are fine, a folder expands to
+every supported file in it - and press Run. The names appear in a table
+(name, decision, count, files), combined across the files the same way as
+`cli.py --input-list`, and each run is saved to
+`output\gui\results_<time>.csv` and `.txt`. "Fast" skips the LLM reviewer;
+"Show review names" hides or shows the REVIEW bucket. Same pipeline as the
+command line; nothing leaves the machine.
+
 **2026-09-29 - Phase 1 output on its own (`--phase1-only`).** Outputs the
 names that pass into the validation firewall: what ingestion and the three
 detectors (regex, dictionary, spaCy) produce, merged into candidates and
