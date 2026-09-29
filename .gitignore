@@ -29,3 +29,4 @@ datasets/evaluation_holdout/snapshots/*
 .claude/
 prompt.txt
 assets/privacy_guard/*.local.txt
+my_files.txt
