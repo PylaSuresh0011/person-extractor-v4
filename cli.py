@@ -22,6 +22,7 @@ from pathlib import Path
 
 from config import BASE_DIR, DEFAULT_CONFIG
 from src.candidate.boundary_refiner import refine_combined_counts
+from src.core.models import IDENTITY_RESOLUTION_CAVEAT
 from src.export.csv_exporter import CsvExporter
 from src.export.json_exporter import JsonExporter
 from src.export.report_exporter import ReportExporter
@@ -568,24 +569,41 @@ def run_batch(input_paths: list[str], args: argparse.Namespace, config: dict, ba
         for e in ordered:
             writer.writerow([e["display"], e["occurrences"], e["decision"], "; ".join(e["files"])])
 
-    _print_header("BATCH SUMMARY")
-    print(f"  Files processed         : {len(input_paths)}")
-    print(f"  Succeeded               : {len(input_paths) - failures}")
-    print(f"  Failed                  : {failures}")
-    print(f"  Unique names (combined) : {len(ordered)} "
-          f"({sum(1 for e in ordered if e['decision'] == 'accepted')} accepted, "
-          f"{sum(1 for e in ordered if e['decision'] == 'review')} review)")
-    print(f"  Combined names file     : {names_path}")
-
-    _print_section(f"ALL NAMES FOUND ACROSS {len(input_paths)} FILE(S) ({len(ordered)})")
+    # The same summary and table as the console, also saved as text next to
+    # the CSV (all_names.txt / <case>_output.txt).
+    txt_path = names_path.with_suffix(".txt")
+    summary = [
+        f"  Files processed         : {len(input_paths)}",
+        f"  Succeeded               : {len(input_paths) - failures}",
+        f"  Failed                  : {failures}",
+        f"  Unique names (combined) : {len(ordered)} "
+        f"({sum(1 for e in ordered if e['decision'] == 'accepted')} accepted, "
+        f"{sum(1 for e in ordered if e['decision'] == 'review')} review)",
+        f"  Combined names file     : {names_path}",
+        f"  Combined names text     : {txt_path}",
+    ]
     if ordered:
-        name_width = max(len(e["display"]) for e in ordered)
-        name_width = max(name_width, len("NAME"))
-        print(f"  {'NAME':<{name_width}}  {'OCCURRENCES':>11}  DECISION   SOURCE FILE(S)")
-        for e in ordered:
-            print(f"  {e['display']:<{name_width}}  {e['occurrences']:>11}  {e['decision']:<9}  {'; '.join(e['files'])}")
+        name_width = max([len(e["display"]) for e in ordered] + [len("NAME")])
+        table = [f"  {'NAME':<{name_width}}  {'OCCURRENCES':>11}  DECISION   SOURCE FILE(S)"] + [
+            f"  {e['display']:<{name_width}}  {e['occurrences']:>11}  {e['decision']:<9}  {'; '.join(e['files'])}"
+            for e in ordered
+        ]
     else:
-        print("  (no persons found in any file)")
+        table = ["  (no persons found in any file)"]
+    table_title = f"ALL NAMES FOUND ACROSS {len(input_paths)} FILE(S) ({len(ordered)})"
+
+    rule = "=" * 78
+    txt_path.write_text("\n".join(
+        [rule, "PERSON_EXTRACTOR_V4 - BATCH RESULTS", rule, *summary, "",
+         "  Input files:", *[f"    {p}" for p in input_paths], "", "-" * 78, table_title, "-" * 78, *table,
+         "", f"  NOTE: {IDENTITY_RESOLUTION_CAVEAT}"]) + "\n", encoding="utf-8")
+
+    _print_header("BATCH SUMMARY")
+    for line in summary:
+        print(line)
+    _print_section(table_title)
+    for line in table:
+        print(line)
 
     return 1 if failures else 0
 
