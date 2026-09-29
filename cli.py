@@ -74,20 +74,24 @@ def _print_section(title: str) -> None:
 
 
 def _report_phase1(input_path: str, result, output_dir: Path):
-    """--phase1-only: summarises and saves the raw detections (see
-    src/export/phase1_exporter.py) instead of the extraction report."""
+    """--phase1-only: summarises and saves the candidates that would enter the
+    validation firewall (see src/export/phase1_exporter.py) instead of the
+    extraction report."""
     from collections import Counter
-    from src.export.phase1_exporter import phase1_rows, write_phase1_csv
-    _print_header("PERSON_EXTRACTOR_V4 - PHASE 1 OUTPUT (ingestion and detection)")
+    from src.export.phase1_exporter import add_phase1_names, phase1_path, write_phase1_csv
+    _print_header("PERSON_EXTRACTOR_V4 - PHASE 1 OUTPUT (names entering the validation firewall)")
     print(f"Source file : {input_path}")
     skipped = result.model_info.get("skipped_reason")
     if skipped:
-        print(f"Skipped at ingestion ({skipped}) - no detections. Use --no-language-filter to force it.")
-    rows = phase1_rows(result, str(input_path))
-    print(f"Raw detections: {len(rows)}  (before validation, the ML classifier or any decision)")
-    for (detector, pattern), n in Counter((r[1], r[2]) for r in rows).most_common():
-        print(f"  {detector:<12} {pattern:<26} {n}")
-    path = write_phase1_csv(output_dir / f"{Path(input_path).stem}_phase1_detections.csv", rows)
+        print(f"Skipped at ingestion ({skipped}) - nothing reaches the firewall. "
+              f"Use --no-language-filter to force it.")
+    names: dict = {}
+    mentions = add_phase1_names(names, result, Path(input_path).name)
+    print(f"Names entering the firewall: {len(names)} distinct, {mentions} mentions "
+          f"(merged from {result.model_info.get('raw_detections', 0)} raw detections)")
+    for detectors, n in Counter("+".join(sorted(e["detectors"])) for e in names.values()).most_common():
+        print(f"  found by {detectors:<28} {n} names")
+    path = write_phase1_csv(phase1_path(output_dir), names)
     print(f"Saved to    : {path}")
     return result
 
@@ -627,7 +631,7 @@ def main() -> int:
                               "instead of running detection on them and producing false "
                               "positives from cross-language word collisions.")
     parser.add_argument("--phase1-only", action="store_true",
-                         help="Output only Phase 1 (ingestion and detection): every raw detection from the regex, dictionary and spaCy detectors, with its location, before validation, the ML classifier or any decision. Written to a *_phase1_detections CSV.")
+                         help="Output only Phase 1 (ingestion and detection): every raw detection from the regex, dictionary and spaCy detectors, with its location, before validation, the ML classifier or any decision. Written to phase_1.csv in the output folder (phase_1_2.csv, ... if taken).")
     parser.add_argument("--no-llm-review", action="store_true",
                          help="Skip the optional local-LLM reviewer (src/review/llm_reviewer.py) this run, even on a GPU machine where it would be used. It moves accepted names a local model doubts to REVIEW; on the 2026-09-28 real-case scan it removed 14 wrong names and made the scan 2.5x longer (40.0 vs 16.2 min).")
     parser.add_argument("--spacy-processes", type=int, default=1,

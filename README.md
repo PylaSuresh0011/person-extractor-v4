@@ -525,20 +525,24 @@ containing an exempted hostname (of 19,089): no ACCEPTED change, no name
 gained or lost in REVIEW; "Edit" (already in REVIEW) +4 mentions in one
 preferences XML.
 
-**2026-09-29 - Phase 1 output on its own (`--phase1-only`).** Outputs only
-what ingestion and the three detectors (regex, dictionary, spaCy) produce -
-every raw detection with its detector, pattern, confidence and location -
-before the validation firewall, the ML classifier, the LLM reviewer or any
-decision. Files the English-prose gate skips still get no detections, as in
-a normal run.
+**2026-09-29 - Phase 1 output on its own (`--phase1-only`).** Outputs the
+names that pass into the validation firewall: what ingestion and the three
+detectors (regex, dictionary, spaCy) produce, merged into candidates and
+boundary-refined - before any validator, the ML classifier, the LLM
+reviewer or a decision. Files the English-prose gate skips send nothing to
+the firewall, as in a normal run.
 ```
-python cli.py --input file.txt --phase1-only          # -> <file>_phase1_detections.csv
+python cli.py --input file.txt --phase1-only
 python scripts/scan_directory.py --input-dir <folder> --phase1-only
 ```
-The scan writes `<folder>_phase1_detections_<time>.csv` (columns:
-source_file, detector, pattern, text, page, line, column, char_start,
-char_end, confidence) next to its usual per-file and summary CSVs. On the
-7 benchmark text files: 10,903 raw detections, against 1,335 labelled names.
+Both write `phase_1.csv` in the output folder - `phase_1_2.csv`,
+`phase_1_3.csv`, ... when that name is taken, so an earlier run is never
+overwritten. One row per distinct name: name, occurrences,
+num_source_files, detectors (e.g. `dictionary+regex+spacy`), patterns,
+source_files - the normal names CSV without a decision. The scan also
+writes its usual per-file and summary CSVs, with the raw detection count.
+One benchmark file: 118 raw detections become 82 candidate mentions of 33
+distinct names.
 
 **2026-09-28 - optional local-LLM reviewer (exp09, owner-approved trade).**
 On a machine with a GPU, each file's ACCEPTED names are checked by a local

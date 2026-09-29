@@ -256,21 +256,32 @@ def test_pipeline_holds_a_lone_word_from_a_tiny_ocr_scrap_for_review(tmp_path):
     assert "Suresh" in {p.display_text for p in live.persons}
 
 
-def test_phase1_only_returns_raw_detections_and_no_decisions(tmp_path):
+def test_phase1_only_outputs_the_names_entering_the_firewall(tmp_path):
     # --phase1-only (2026-09-29): Phase 1 of the architecture - ingestion and
-    # the regex/dictionary/spaCy detectors - with nothing validated or decided.
-    from src.export.phase1_exporter import COLUMNS, phase1_rows
+    # the regex/dictionary/spaCy detectors, merged into candidates - exactly as
+    # it enters the validation firewall, with nothing validated or decided.
+    import csv
+    from src.export.phase1_exporter import COLUMNS, add_phase1_names, write_phase1_csv
     cfg = _test_config()
     cfg["phase1_only"] = True
     sample = _write_sample(tmp_path)
     result = Pipeline(config=cfg, base_dir=BASE_DIR).run(sample)
     assert result.success and not result.persons and not result.review_persons and not result.rejected
-    detectors = {d.detector.value for d, _ in result.detections}
-    patterns = {d.metadata.get("pattern") for d, _ in result.detections}
-    assert detectors == {"regex", "dictionary", "spacy"} and "titled" in patterns
-    # Noise the later phases remove is still here - that's the point.
-    assert any(d.text.startswith("Jai") for d, _ in result.detections)
-    rows = phase1_rows(result, "sample.txt")
-    assert len(rows) == len(result.detections) and len(rows[0]) == len(COLUMNS)
-    titled = next(r for r in rows if r[2] == "titled" and "Suresh" in r[3])
-    assert titled[5] == 1 and SAMPLE_TEXT[titled[7]:titled[8]] == titled[3]  # line 1, exact offsets
+    assert result.model_info["raw_detections"] > len(result.firewall_input) > 0
+    names: dict = {}
+    assert add_phase1_names(names, result, "sample.txt") == len(result.firewall_input)
+    rows = list(csv.DictReader(open(write_phase1_csv(tmp_path / "phase_1.csv", names), encoding="utf-8")))
+    assert list(rows[0]) == COLUMNS
+    by_name = {r["name"]: r for r in rows}
+    # A real name, found by all three detectors and merged into one candidate...
+    assert set(by_name["Dr. Suresh Kumar"]["detectors"].split("+")) == {"dictionary", "regex", "spacy"}
+    assert "titled" in by_name["Dr. Suresh Kumar"]["patterns"]
+    # ...and noise that the firewall removes later, still here - that's the point.
+    assert any(n.startswith("Jai") for n in by_name)
+
+
+def test_phase1_output_is_named_phase_1_and_never_overwrites(tmp_path):
+    from src.export.phase1_exporter import phase1_path, write_phase1_csv
+    first = write_phase1_csv(phase1_path(tmp_path), {})
+    second = write_phase1_csv(phase1_path(tmp_path), {})
+    assert (first.name, second.name) == ("phase_1.csv", "phase_1_2.csv")
