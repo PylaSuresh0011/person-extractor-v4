@@ -31,6 +31,7 @@ from src.candidate.name_propagation import DOCUMENT_NAME_PATTERN
 from src.core.models import CandidateResult, ValidationResult
 from src.knowledge.knowledge_base import KnowledgeBase
 from src.validation.base_validator import BaseValidator
+from src.detection.regex_detector import PERSON_MARKER_PATTERNS
 
 _SENTENCE_END_RE = re.compile(r'[.!?]["\'\u2019\u201d]?\s*$')
 
@@ -113,7 +114,7 @@ class GrammarValidator(BaseValidator):
             or d.metadata.get("pattern") == DOCUMENT_NAME_PATTERN
             for d in detections
         )
-        has_title_evidence = any(d.metadata.get("pattern") == "titled" for d in detections)
+        has_title_evidence = any(d.metadata.get("pattern") in PERSON_MARKER_PATTERNS for d in detections)
 
         if has_dictionary_evidence or has_title_evidence:
             return ValidationResult(self.name, passed=True, score=0.0, message="Dictionary/title-confirmed, exempt")

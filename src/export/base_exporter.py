@@ -10,7 +10,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from src.candidate.alias_resolution import place, resolve_aliases
 from src.core.models import AggregatedPerson, CandidateResult
+from src.decision.feature_score import entity_reason
 
 
 class BaseExporter(ABC):
@@ -35,7 +37,15 @@ class BaseExporter(ABC):
         raise NotImplementedError
 
     @staticmethod
-    def _person_row(person: AggregatedPerson, source_path: str) -> dict:
+    def _aliases_by_name(persons: list[AggregatedPerson], source_path: str = "") -> dict[str, list[str]]:
+        """{display name: the other forms of the same person in this file} -
+        src/candidate/alias_resolution.py; rows stay one per form."""
+        entries = [{"display": p.display_text, "occurrences": p.occurrence_count, "files": [source_path],
+                    "places": {place(source_path, loc) for loc in p.locations}} for p in persons]
+        return {e["display"]: e["aliases"] for e in resolve_aliases(entries)}
+
+    @staticmethod
+    def _person_row(person: AggregatedPerson, source_path: str, aliases: list[str] | None = None) -> dict:
         best_mention = max(person.mentions, key=lambda m: m.state.final_confidence)
         locations = "; ".join(str(loc) for loc in person.locations)
         reasons = "; ".join(
@@ -49,4 +59,9 @@ class BaseExporter(ABC):
             "best_confidence": best_mention.state.final_confidence,
             "locations": locations,
             "why_detected": reasons,
+            # Added 2026-10-01 (textbook error brief): the other forms of this
+            # person in the file, the feature score, and why it is a person.
+            "aliases": "; ".join(aliases or []),
+            "score": "" if person.score is None else person.score,
+            "entity_reason": entity_reason(person.mentions),
         }

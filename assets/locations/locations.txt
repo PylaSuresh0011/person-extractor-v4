@@ -6356,3 +6356,69 @@ Wyoming
 # North Carolina town) were also missing.
 Asia
 Mint Hill
+# --- Bulk addition (2026-10-01): Indian states and union territories, with
+# common former names - same precedent as the US state list above. Found
+# via a 274-page Indian school textbook, where "Goa", "Madras", "Calcutta"
+# and "West Bengal" were reported as people: the GeoNames city import has
+# no states, and the former city names are no longer the official ones.
+# Checked against first_names.txt/last_names.txt first - "Tripura",
+# "Kashmir" and "Mysore" collide with personal names and are left out.
+Arunachal Pradesh
+Assam
+Bihar
+Chhattisgarh
+Goa
+Haryana
+Himachal Pradesh
+Jharkhand
+Madhya Pradesh
+Manipur
+Meghalaya
+Mizoram
+Nagaland
+Odisha
+Orissa
+Sikkim
+Uttar Pradesh
+Uttarakhand
+Uttaranchal
+West Bengal
+Bengal
+Andaman and Nicobar Islands
+Dadra and Nagar Haveli
+Daman and Diu
+Jammu and Kashmir
+Ladakh
+Lakshadweep
+Pondicherry
+Bombay
+Madras
+Calcutta
+Poona
+Baroda
+Benares
+Simla
+# --- Addition (2026-10-01, round 3): former countries and states that history
+# books name - "Tito of Yugoslavia", "East Pakistan". Checked against the
+# name lists first; collisions left out.
+Yugoslavia
+USSR
+Soviet Union
+Czechoslovakia
+Burma
+Ceylon
+Persia
+Prussia
+Siam
+East Pakistan
+West Pakistan
+East Germany
+West Germany
+Rhodesia
+Zaire
+Indo-China
+Ottoman Empire
+Austria-Hungary
+Hyderabad State
+Bengal Presidency
+Madras Presidency

@@ -1,0 +1,34 @@
+# Place and building words (added 2026-10-01, error brief P3): a candidate
+# ending in one ("Krishna Dist", "Gandhi Nagar", "Philip's Church", "Mosque
+# Street", "Taj Mahal", "Western Ghats"), or followed by one on the same
+# line ("Ranga Reddy Dist."), names a place, not a person. A word here that
+# is also a surname (Nagar, Street, Church, Villa, Mahal) is not trusted
+# after a known first name ("Charlotte Church", "David Villa") unless the
+# phrase is possessive or follows "the".
+# Generic vocabulary - no person names.
+dist
+district
+mandal
+taluk
+village
+road
+nagar
+street
+lane
+colony
+church
+vihar
+enclave
+villa
+mahal
+temple
+mosque
+palace
+fort
+bazaar
+bazar
+ghats
+hills
+mountains
+river
+valley

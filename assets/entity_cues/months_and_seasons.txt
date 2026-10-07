@@ -1,0 +1,53 @@
+# Indian lunar months and the six seasons, in their common spellings (added
+# 2026-10-01, round 3, error brief v2 N2). A candidate made only of these
+# words ("Karthika", "Sharad Aswayuja", "Varsha Sraavana") is a time, not a
+# person; "Sharad Joshi" is unaffected. Generic calendar vocabulary.
+chaitra
+chaitram
+vaishakha
+vaisakha
+vaishakh
+vaisakham
+jyeshtha
+jyeshta
+jyestha
+ashadha
+aashadha
+ashada
+shravana
+sravana
+sraavana
+shravan
+bhadrapada
+bhadrapadam
+ashwayuja
+aswayuja
+asvayuja
+ashvin
+ashwin
+kartika
+karthika
+kartik
+karthikam
+margashira
+margasira
+margasirsha
+pushya
+pausha
+pusya
+magha
+maagha
+phalguna
+phalgun
+palguna
+vasantha
+vasanta
+grishma
+greeshma
+varsha
+sharad
+sarad
+hemanta
+hemantha
+shishira
+sisira

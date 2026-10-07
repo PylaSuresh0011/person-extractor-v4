@@ -161,6 +161,7 @@ from __future__ import annotations
 
 import re
 
+from src.candidate.boundary_refiner import _in_running_text
 from src.candidate.candidate_factory import is_middle_initial_name
 from src.candidate.name_propagation import DOCUMENT_NAME_PATTERN
 from src.core.models import CandidateResult, DetectorName, ValidationResult
@@ -168,8 +169,52 @@ from src.knowledge.knowledge_base import KnowledgeBase
 from src.preprocessing.latin import LATIN_UPPER
 from src.preprocessing.segmenter import count_occurrences
 from src.validation.base_validator import BaseValidator
+from src.validation.document_case import CaseCache
+from src.detection.regex_detector import PERSON_MARKER_PATTERNS
 
 _ACRONYM_SHAPE_RE = re.compile(rf"^[{LATIN_UPPER}]{{2,}}s?$")  # accented capitals too - see structure_validator.py
+
+
+_INITIALS_NAME_RE = re.compile(r"^(?:[A-Z]\.\s?){1,4}([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)$")
+_FIELD_LABEL_BEFORE = re.compile(r"\b[A-Za-z][\w ]{0,30}:[ \t]*$")
+
+
+# A line of data or code: JSON ('["French Guiana","gf","594"]'), a regex
+# alternation ("iPhone|iPad|Opera Mini/i.test("), a "|"-delimited record.
+_DATA_LINE = re.compile(r"""["']\s*[,:]\s*["'\[{\d]|[\[{]\s*["']|\.test\(|=>|\w\|\w""")
+
+
+def _is_record_field_value(document_text: str, start: int) -> bool:
+    """On a line of data or code (see _DATA_LINE), or the value of a "Label:
+    value" field on a line of "|"-delimited fields ("Ref: Grey Beacon |
+    Code: 4319 | Status: archived") - no sentence around it. The real case
+    scan of 2026-10-01 found country pickers' "French Guiana" and "Pierre"
+    and a browser check's "Opera Mini" accepted by the exemptions below."""
+    line_start = document_text.rfind("\n", 0, start) + 1
+    line_end = document_text.find("\n", start)
+    line = document_text[line_start:line_end if line_end != -1 else len(document_text)]
+    if _DATA_LINE.search(line):
+        return True
+    return "|" in line and bool(_FIELD_LABEL_BEFORE.search(document_text[line_start:start]))
+
+
+def rare_surname_follows(text: str, knowledge_base: KnowledgeBase, document_text: str | None = None,
+                         case: CaseCache | None = None) -> bool:
+    """Every word after the first is a capitalised word no list knows -
+    no ordinary word, no place: "Stephen Hawking", "Marie Curie",
+    "Gabriel Okara", "Lee Iacocca" (2026-10-01). See validate().
+
+    With the document given (2026-10-07), a word on the ordinary-word list
+    also counts when this document writes it at least twice and never in
+    lowercase (CaseCache.only_ever_capitalised): "William Shakespeare" was
+    rejected in a textbook that names him three times, because the
+    frequency list holds "shakespeare"."""
+    rest = [t.rstrip(".,") for t in text.split()[1:]]
+    return bool(rest) and all(
+        len(t) >= 3 and t[0].isupper() and t[1:].islower() and not knowledge_base.is_location(t)
+        and (not knowledge_base.is_common_word(t)
+             or (case is not None and document_text is not None and case.only_ever_capitalised(t, document_text)))
+        for t in rest)
 
 
 class CorroborationValidator(BaseValidator):
@@ -189,9 +234,11 @@ class CorroborationValidator(BaseValidator):
         # cleared per document (see reset_document_cache) since this
         # validator instance is reused across every file in a batch run.
         self._repetition_cache: dict[str, int] = {}
+        self._case = CaseCache()  # see src/validation/document_case.py
 
     def reset_document_cache(self) -> None:
         self._repetition_cache.clear()
+        self._case.clear()
 
     def validate(self, candidate: CandidateResult, knowledge_base: KnowledgeBase, document_text: str) -> ValidationResult:
         detections = candidate.candidate.source_detections
@@ -213,7 +260,8 @@ class CorroborationValidator(BaseValidator):
         has_single_token_dictionary_evidence = any(
             d.metadata.get("pattern") == "dictionary_single_token" for d in detections
         )
-        has_title_evidence = any(d.metadata.get("pattern") == "titled" for d in detections)
+        # A title, or a person cue (kinship, sign-off, speaker label) - see regex_detector.py
+        has_title_evidence = any(d.metadata.get("pattern") in PERSON_MARKER_PATTERNS for d in detections)
         has_spacy_evidence = any(d.detector == DetectorName.SPACY for d in detections)
         # First name of a full name this document already accepted - see
         # src/candidate/name_propagation.py (which never propagates
@@ -223,7 +271,14 @@ class CorroborationValidator(BaseValidator):
             d.metadata.get("pattern") == DOCUMENT_NAME_PATTERN for d in detections
         )
 
-        if has_window_dictionary_evidence or has_title_evidence or has_document_name_evidence:
+        # Initials and a surname no list calls an ordinary word ("A.B.
+        # Vajpayee", "K.N. Anandan", round 3, 2026-10-01) - a person's name
+        # by its shape; "U.S. Army" and "T.S. Government" end in ordinary words.
+        initials_name = _INITIALS_NAME_RE.match(text)
+        has_initials_shape = bool(initials_name) and not any(
+            knowledge_base.is_common_word(w) and not knowledge_base.is_known_last_name(w)
+            for w in initials_name.group(1).split())
+        if has_window_dictionary_evidence or has_title_evidence or has_document_name_evidence or has_initials_shape:
             return ValidationResult(
                 self.name, passed=True, score=0.0, message="Has corroborating evidence beyond bare shape-match",
             )
@@ -247,6 +302,44 @@ class CorroborationValidator(BaseValidator):
         # the other (see module docstring's third and fourth refinements)
         # and both fall through to the same repetition-or-reject path.
         is_ambiguous_collision = self._starts_with_ambiguous_word(text, knowledge_base)
+        # ...but not when spaCy tags it AND a surname no list knows follows
+        # (2026-10-01): the collision is spaCy reading an ordinary word
+        # after a first-name-like word as a surname ("Ruby Chamber"). On a
+        # school textbook this rejected "Stephen Hawking", "Marie Curie",
+        # "Gabriel Okara" and "Lee Iacocca" - common_english_words.txt lists
+        # "stephen", "marie" and "lee". Without the spaCy tag, record labels
+        # like "Ref: Wild Meadow | Code: 6556" (benchmark_real_675) got
+        # through: "meadow" is missing from the common-word list too. Running
+        # text only - spaCy tagged "Ref: Grey Beacon | Code: 4319" as well,
+        # and a field value in a delimited record has no sentence around it.
+        in_record = _is_record_field_value(document_text, candidate.candidate.start)
+        if (is_ambiguous_collision and has_spacy_evidence and not in_record
+                and rare_surname_follows(text, knowledge_base, document_text, self._case)):
+            is_ambiguous_collision = False
+        # ...or, with no spaCy tag, when the first word is on the first-name
+        # list, the surname is a word no list knows at all, and the name
+        # stands inside a sentence (2026-10-07): "the book ... by Leo
+        # Tolstoy." in a school textbook - one mention, which spaCy did not
+        # tag. The record labels above have no sentence around them. Not for
+        # a nationality, language or calendar word in front ("German
+        # Fascism", "German Nazis" in a history textbook).
+        first_word = text.split()[0] if text.split() else ""
+        if (is_ambiguous_collision and has_single_token_dictionary_evidence and not in_record
+                and knowledge_base.is_known_first_name(first_word)
+                and first_word.lower() not in knowledge_base.group_words
+                and not knowledge_base.is_language_or_region_name(first_word)
+                and not knowledge_base.is_calendar_word(first_word)
+                and rare_surname_follows(text, knowledge_base)
+                and _in_running_text(document_text, candidate.candidate.start, candidate.candidate.end)):
+            is_ambiguous_collision = False
+        # A single first-name-like word spaCy tags, that this document never
+        # writes in lowercase ("Mary", "Isaac", "Ali" in a textbook; never
+        # "mary") - the collision is with an ordinary word, and this document
+        # doesn't use it as one (src/validation/document_case.py).
+        if (is_ambiguous_collision and has_spacy_evidence and len(text.split()) == 1
+                and not _is_record_field_value(document_text, candidate.candidate.start)
+                and self._case.lowercase_uses(text, document_text) == 0):
+            is_ambiguous_collision = False
         is_calendar_word = len(text.split()) == 1 and knowledge_base.is_calendar_word(text)
         is_language_or_region = len(text.split()) == 1 and knowledge_base.is_language_or_region_name(text)
         is_allcaps_last_name_collision = self._is_allcaps_last_name_collision(text, knowledge_base)

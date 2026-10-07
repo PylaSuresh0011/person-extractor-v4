@@ -1,0 +1,38 @@
+# Titles and roles (added 2026-10-01, round 3, error brief v2 N4): a candidate
+# made only of these and honorifics ("Mr. President", "Maharaja", "Sri",
+# "Archduke") is no person. Generic vocabulary.
+# Not king, queen, prince, emperor: also surnames and names ("King" is
+# Martin Luther King in a history book).
+president
+maharaja
+maharani
+raja
+rani
+sri
+shri
+smt
+maulana
+acharya
+archduke
+fuhrer
+viceroy
+chancellor
+governor
+pastor
+general
+tsar
+czar
+sultan
+nawab
+pandit
+mahatma
+swami
+guru
+sant
+sheikh
+sheik
+begum
+minister
+premier
+retd
+tailor

@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import re
 
+from src.candidate.boundary_refiner import NAME_PARTICLES
+from src.candidate.name_propagation import DOCUMENT_NAME_PATTERN
 from src.core.models import CandidateResult, ValidationResult
 from src.knowledge.knowledge_base import KnowledgeBase
 from src.preprocessing.latin import LATIN_LETTERS, LATIN_UPPER
@@ -20,6 +22,14 @@ _VALID_TOKEN_RE = re.compile(rf"^[{LATIN_UPPER}][{LATIN_LETTERS}'\-]*\.?$")
 # while "JOHN" (unknown as a last name) would have been rejected.
 _ACRONYM_RE = re.compile(rf"^[{LATIN_UPPER}]{{2,}}$")
 _ACRONYM_PLURAL_RE = re.compile(rf"^[{LATIN_UPPER}]{{2,}}s$")
+# A regnal/generational numeral closing a name ("Henry Ford II", "Pius XI",
+# 2026-10-01) is part of it, not an acronym. Single letters (I, V, X) are left
+# out: "Class X" and the pronoun "I".
+ROMAN_SUFFIX_RE = re.compile(r"^(?:II|III|IV|VI|VII|VIII|IX|XI|XII|XIII|XIV|XV|XVI)$")
+_INITIAL_RE = re.compile(rf"^[{LATIN_UPPER}]\.?$")
+# Joined initials before a name ("M.L. Vasantha Kumari", "Y.G.K. Murthy",
+# 2026-10-01) - each letter with its dot. Not on their own, and never last.
+_JOINED_INITIALS_RE = re.compile(rf"^(?:[{LATIN_UPPER}]\.){{2,4}}$")
 
 
 class StructureValidator(BaseValidator):
@@ -31,7 +41,27 @@ class StructureValidator(BaseValidator):
         if not tokens:
             return ValidationResult(self.name, passed=False, severity="hard", message="Empty candidate")
 
-        for token in tokens:
+        # A title with nothing but bare initials after it ("Dr. G", "Sri P.",
+        # "Smt G.", 2026-10-01) is a name cut short - usually "G.Gopal Reddy"
+        # split by the PDF text layer - never a complete name. "Ravi K." (a
+        # name word plus an initial) is unaffected.
+        rest = [t for t in tokens if not (knowledge_base.is_title(t.rstrip(".")) or knowledge_base.is_honorific(t.rstrip(".")))]
+        if len(rest) < len(tokens) and rest and all(_INITIAL_RE.match(t) for t in rest):
+            return ValidationResult(
+                self.name, passed=False, severity="hard",
+                message="Only a title and bare initials - a name cut short, not a complete name",
+            )
+
+        for i, token in enumerate(tokens):
+            if i == len(tokens) - 1 and i > 0 and ROMAN_SUFFIX_RE.match(token):
+                continue  # "Henry Ford II" - see ROMAN_SUFFIX_RE
+            if i < len(tokens) - 1 and _JOINED_INITIALS_RE.match(token):
+                continue  # "M.L. Vasantha Kumari" - see _JOINED_INITIALS_RE
+            if 0 < i < len(tokens) - 1 and token in NAME_PARTICLES:
+                # A lowercase particle between name words ("F. W. de Klerk",
+                # "Ludwig van Beethoven", 2026-10-07): spaCy tags the whole
+                # name, and the particle failed the capital-letter shape.
+                continue
             if not _VALID_TOKEN_RE.match(token):
                 return ValidationResult(
                     self.name, passed=False, severity="hard",
@@ -44,7 +74,7 @@ class StructureValidator(BaseValidator):
             # its accent-variant fallback folds "ÑËÙ" to the real surname
             # "neu", which would let accent-stuffed all-caps garbage through
             # this all-caps-surname exemption.
-            if is_acronym and token.lower() not in knowledge_base.last_names:
+            if is_acronym and token.lower() not in knowledge_base.last_names and not _vouched_acronym(candidate):
                 return ValidationResult(
                     self.name, passed=False, severity="hard",
                     message=f"Token '{token}' looks like an acronym, not a name",
@@ -66,6 +96,15 @@ class StructureValidator(BaseValidator):
             )
 
         return ValidationResult(self.name, passed=True, score=0.10, message="Structure OK")
+
+
+def _vouched_acronym(candidate: CandidateResult) -> bool:
+    """An acronym a document defines as a person's alias ("Nandamuri Taraka
+    Ramarao (NTR)" - a document_name detection, explicit_aliases.py) or that
+    sits in a list of people ("NTR, ANR, and Gummadi" - list_propagation.py),
+    2026-10-01, textbook error brief P7."""
+    return any(d.metadata.get("pattern") == DOCUMENT_NAME_PATTERN or d.metadata.get("cue") == "list"
+               for d in candidate.candidate.source_detections)
 
 
 # Added 2026-09-24 after a real case scan (Android extraction) accepted

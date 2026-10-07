@@ -27,7 +27,9 @@ class DetectorManager:
         detection_cfg = config.get("detection", {})
 
         if detection_cfg.get("use_regex", True):
-            self.detectors.append(RegexDetector())
+            kb = knowledge_base
+            self.detectors.append(RegexDetector(is_ordinary_word=lambda w: kb.is_common_word(w) and (
+                not kb.is_known_first_name(w) or kb.is_ambiguous_first_name(w)), is_place=kb.is_location))
 
         if detection_cfg.get("use_dictionary", True):
             self.detectors.append(DictionaryDetector(knowledge_base))

@@ -1,0 +1,48 @@
+# Geographic context words (added 2026-10-01, round 3, error brief v2 N1):
+# a mention with one of these within three words ("the Ravi river",
+# "tributaries of the Krishna", "Nirmal district", "Hussain Sagar") is
+# geographic. A name most of whose mentions are geographic is a place -
+# entity_type_validator.py, the "geo" rule. Generic vocabulary.
+river
+rivers
+tributary
+tributaries
+flows
+flow
+flowing
+basin
+delta
+hills
+hill
+range
+ranges
+peak
+peaks
+valley
+plateau
+lake
+lakes
+sagar
+cyclone
+district
+districts
+dist
+dt
+nagar
+mandal
+village
+villages
+dam
+canal
+region
+coast
+coastal
+plains
+plain
+glacier
+desert
+waterfall
+falls
+estuary
+source
+confluence

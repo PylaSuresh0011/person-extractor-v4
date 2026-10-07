@@ -1,0 +1,17 @@
+# Award and record words (added 2026-10-01, error brief P3): a candidate
+# containing one ("Nobel Prize", "Padma Vibhushan", "Bharat Ratna") is an
+# award, not a person. Not applied to the word AFTER a name: "the Albert
+# Einstein Award" still mentions Albert Einstein.
+# Generic vocabulary - no person names.
+prize
+prizes
+award
+awards
+ratna
+bhushan
+vibhushan
+medal
+medals
+trophy
+record
+records

@@ -26,6 +26,8 @@ from src.core.models import ExtractionResult, PipelineStatistics, SourceFormat
 from src.extraction.registry import get_extractor
 from src.preprocessing.cleaner import clean_text
 from src.preprocessing.line_indexer import LineIndex
+from src.preprocessing.page_furniture import blank_page_furniture
+from src.preprocessing.typeset import join_wrapped_names, normalize_typeset
 from src.utils.logger import get_logger
 from src.utils.timing import Stopwatch, timed_stage
 
@@ -33,6 +35,35 @@ logger = get_logger("pipeline.orchestrator")
 
 # Same separator PdfReader joins pages with (src/io/pdf_reader.py).
 _PAGE_SEPARATOR = "\n\n"
+
+
+def prepare_pdf_text(pages: list[str], knowledge_base=None) -> tuple[str, LineIndex]:
+    """A PDF's pages as the extractor reads them, and their line index.
+
+    Still ONE document for extraction (repetition and name propagation
+    should see every page), but each page is cleaned on its own and joined
+    with the same blank line PdfReader uses, so every page's start offset in
+    the cleaned text is known exactly and locations can say "page 7, line
+    12" instead of a line of the joined text. Running headers/footers and
+    watermark letters go first (src/preprocessing/page_furniture.py), then
+    PDF text-layer quirks are normalised (src/preprocessing/typeset.py).
+    Names wrapped across a line or page break are joined last, for the
+    detectors only - same length, so the line index built before the join
+    still reports the real lines. Also used for evaluation snapshots
+    (scripts/prepare_holdout_snapshots.py), so labels line up exactly."""
+    kb = knowledge_base
+    is_name_word = (lambda w: kb.is_known_first_name(w) or kb.is_known_last_name(w)
+                    or not kb.is_common_word(w)) if kb else None
+    is_known_word = (lambda w: kb.is_common_word(w) or kb.is_stopword(w) or kb.is_known_first_name(w)
+                     or kb.is_known_last_name(w)) if kb else None
+    cleaned_pages = [normalize_typeset(clean_text(p), is_name_word, is_known_word) for p in blank_page_furniture(pages)]
+    page_starts, offset = [], 0
+    for page in cleaned_pages:
+        page_starts.append(offset)
+        offset += len(page) + len(_PAGE_SEPARATOR)
+    cleaned_text = _PAGE_SEPARATOR.join(cleaned_pages)
+    line_index = LineIndex.build(cleaned_text, page_start_offsets=page_starts)
+    return join_wrapped_names(cleaned_text, kb.is_common_word if kb else None, kb.is_location if kb else None), line_index
 
 
 class Pipeline:
@@ -90,6 +121,14 @@ class Pipeline:
         stats.documents_processed += 1
         return self._run_on_text(text, source_label, stats, Stopwatch())
 
+    def run_pages(self, pages: list[str], source_label: str = "<pages>") -> ExtractionResult:
+        """Same pipeline as run() on a PDF's page texts already in memory -
+        page furniture removal and typeset normalisation included."""
+        stats = PipelineStatistics()
+        stats.documents_processed += 1
+        return self._run_on_text(_PAGE_SEPARATOR.join(pages), source_label, stats, Stopwatch(),
+                                 pages=pages, source_format=SourceFormat.PDF)
+
     def _run_on_text(
         self, raw_text: str, input_path: str, stats: PipelineStatistics, total_timer: Stopwatch,
         pages: list[str] | None = None,
@@ -100,19 +139,7 @@ class Pipeline:
                 cleaned_text = clean_text(raw_text)
                 line_index = LineIndex.build(cleaned_text)
             else:
-                # PDFs: still ONE document for extraction (repetition and
-                # name propagation should see every page), but each page is
-                # cleaned on its own and joined with the same blank line
-                # PdfReader uses, so every page's start offset in the
-                # cleaned text is known exactly and locations can say
-                # "page 7, line 12" instead of a line of the joined text.
-                cleaned_pages = [clean_text(p) for p in pages]
-                page_starts, offset = [], 0
-                for page in cleaned_pages:
-                    page_starts.append(offset)
-                    offset += len(page) + len(_PAGE_SEPARATOR)
-                cleaned_text = _PAGE_SEPARATOR.join(cleaned_pages)
-                line_index = LineIndex.build(cleaned_text, page_start_offsets=page_starts)
+                cleaned_text, line_index = prepare_pdf_text(pages, getattr(self.extractor, "knowledge_base", None))
 
         result = self.extractor.extract(cleaned_text, line_index, input_path, stats, source_format=source_format)
         stats.total_seconds = total_timer.elapsed

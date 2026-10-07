@@ -16,7 +16,9 @@ Stopword, Language, Campaign, Organization, Location, Title, Initial,
 Context, Punctuation, Repetition) plus Corroboration, added after
 real-world testing showed bare shape-matches with zero other evidence
 need to be rejected outright, not merely left for a human to sift
-through (see corroboration_validator.py for the full story).
+through (see corroboration_validator.py for the full story), and Entity
+type (2026-10-01): ordinary words, places, awards, works and groups by
+the cues the document itself gives (entity_type_validator.py).
 """
 
 from __future__ import annotations
@@ -30,6 +32,7 @@ from src.validation.validators.campaign_validator import CampaignValidator
 from src.validation.validators.context_validator import ContextValidator
 from src.validation.validators.corroboration_validator import CorroborationValidator
 from src.validation.validators.dictionary_validator import DictionaryValidator
+from src.validation.validators.entity_type_validator import EntityTypeValidator
 from src.validation.validators.grammar_validator import GrammarValidator
 from src.validation.validators.initial_validator import InitialValidator
 from src.validation.validators.language_validator import LanguageValidator
@@ -76,6 +79,7 @@ class ValidationPipeline:
             CampaignValidator(),
             OrganizationValidator(),
             LocationValidator(),
+            EntityTypeValidator(),  # places, awards, works, groups, ordinary words (2026-10-01)
             StopwordValidator(),
             GrammarValidator(),
             ContextValidator(),  # also contributes a soft score when it passes

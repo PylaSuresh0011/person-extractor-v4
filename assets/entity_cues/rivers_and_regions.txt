@@ -1,0 +1,49 @@
+# Major Indian rivers and states (added 2026-10-01, round 3, error brief v2 N1).
+# Never used on its own - several are also people's names (Krishna, Ravi,
+# Kaveri). Only as list context: in "Jhelum, Chenab, Ravi, Beas and Sutlej"
+# most items are known rivers, so the rest are places too.
+# Generic gazetteer - public geography.
+ganga
+ganges
+yamuna
+brahmaputra
+indus
+jhelum
+chenab
+ravi
+beas
+sutlej
+godavari
+krishna
+kaveri
+cauvery
+cauveri
+narmada
+tapti
+tapi
+tapati
+mahanadi
+tungabhadra
+penna
+pennar
+sabarmati
+chambal
+betwa
+son
+damodar
+teesta
+gandak
+kosi
+ghaghara
+luni
+mahi
+manjira
+bhima
+musi
+pranahita
+indravati
+subarnarekha
+alaknanda
+alakananda
+bhagirathi
+lohit

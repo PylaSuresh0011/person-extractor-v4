@@ -130,6 +130,7 @@ def test_files_are_reviewed_but_live_text_never_is(monkeypatch, tmp_path):
     monkeypatch.setattr(llm.LlmReviewer, "p_person", lambda self, name, excerpts: (asked.append(name), 0.01)[1])
     cfg = copy.deepcopy(DEFAULT_CONFIG)
     cfg["feedback"]["enabled"] = False
+    cfg["decision"]["feature_score_gate"] = False  # the demote/promote path
     cfg["llm_reviewer"]["resolved"] = {"active": True, "reason": "on (test)"}
     text = "Dr. Suresh Kumar met Mrs. Jennifer Wilson in the office yesterday afternoon.\n"
     live = Pipeline(config=cfg, base_dir=BASE_DIR).run_text(text)
@@ -161,3 +162,23 @@ def test_phase1_only_option_in_the_scan_and_the_cli():
     assert scan_config(argparse.Namespace(**flags, phase1_only=True))["phase1_only"] is True
     assert "phase1_only" not in scan_config(argparse.Namespace(**flags, phase1_only=False))
     assert cli._build_config(argparse.Namespace(phase1_only=True))["phase1_only"] is True
+
+
+def test_with_the_score_gate_the_class_moves_the_score_and_overrides_are_logged(monkeypatch):
+    """Round 3: the model's class (with sentence context) moves the final
+    score; a decision it changes is logged with its reason."""
+    seen: list[list[str]] = []
+
+    def classify(self, name, sentences):
+        seen.append(sentences)
+        return {c: (0.94 if c == "PLACE" else 0.01) for c in llm.CLASSES}
+    monkeypatch.setattr(llm.LlmReviewer, "classify", classify)
+    reviewer = llm.LlmReviewer(SETTINGS, BASE_DIR / "assets")
+    text = "Five rivers flow here. The Chenab and the Ravi join the Indus. It is wide in July."
+    ravi = _cand("Ravi", text.index("Ravi"), Decision.ACCEPTED)
+    ravi.state.person_score = 0.75
+    reviewer.review([ravi], text, score_gate=True)
+    assert seen and seen[0][0] == "The Chenab and the [[Ravi]] join the Indus."  # its sentence
+    assert ravi.state.person_score < 0.75 and ravi.state.decision != Decision.ACCEPTED
+    assert reviewer.overrides and reviewer.overrides[0]["class"] == "PLACE"
+    assert reviewer.overrides[0]["from"] == "accepted"

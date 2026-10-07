@@ -48,3 +48,8 @@ begum
 sahib
 sahiba
 memsahib
+# 2026-10-01: the common spelling "Sri" ("Sri K. Venkata Rama Rayudu") was missing
+# beside "shri" - a textbook's credit pages use it throughout.
+sri
+srimati
+srimathi

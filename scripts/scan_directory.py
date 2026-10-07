@@ -62,6 +62,7 @@ from src.pipeline.orchestrator import Pipeline
 from src.utils.logger import configure_logging, get_logger
 from src.utils.provenance import build_run_provenance, provenance_summary_line
 from src.review.llm_reviewer import resolve_status
+from src.utils.keep_awake import disable_power_throttling, keep_awake
 from src.export.phase1_exporter import add_phase1_names, phase1_path, write_phase1_csv
 
 logger = get_logger("scripts.scan_directory")
@@ -91,6 +92,7 @@ _worker_pipeline: Pipeline | None = None
 
 def _init_worker(config: dict, base_dir_str: str) -> None:
     global _worker_pipeline
+    disable_power_throttling()  # each worker is its own process - see src/utils/keep_awake.py
     configure_logging(Path(base_dir_str) / "logs")
     _worker_pipeline = Pipeline(config=config, base_dir=Path(base_dir_str))
 
@@ -517,7 +519,10 @@ def main() -> int:
     output_dir = Path(args.output) if args.output else BASE_DIR / "output" / "scans"
 
     configure_logging(BASE_DIR / "logs")
-    return run_scan(input_dir, output_dir, args)
+    # Keeps the PC awake and the scan at full speed with nobody at the
+    # keyboard (src/utils/keep_awake.py).
+    with keep_awake():
+        return run_scan(input_dir, output_dir, args)
 
 
 if __name__ == "__main__":

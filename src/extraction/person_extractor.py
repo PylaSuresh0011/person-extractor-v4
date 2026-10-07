@@ -19,15 +19,22 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from src.candidate.boundary_refiner import (
+    extend_left_over_initials,
+    trim_trailing_designations,
+    extend_particles_and_suffixes,
     refine_boundaries,
     split_double_name_candidates,
     trim_dictionary_confirmed_organization_edge,
+    trim_leading_non_name_words,
     trim_stopword_edges,
 )
 from src.candidate.candidate_aggregator import aggregate_by_surface_form
 from src.candidate.candidate_factory import CandidateFactory
+from src.candidate.explicit_aliases import find_explicit_aliases
+from src.candidate.list_propagation import EVIDENCE_REJECTIONS, items_to_propagate, list_detection
 from src.candidate.name_propagation import (
     DOCUMENT_NAME_PATTERN,
+    _overlaps_any,
     document_name_detection,
     propagatable_first_names,
     review_candidates_to_promote,
@@ -46,6 +53,7 @@ from src.core.models import (
     STRUCTURED_FORMATS,
 )
 from src.decision.decision_engine import DecisionEngine
+from src.decision.feature_score import apply_score_gate, score_persons
 from src.detection.detector_manager import DetectorManager
 from src.extraction.base_extractor import Extractor
 from src.features.feature_extractor import extract_features
@@ -58,6 +66,7 @@ from src.utils.logger import get_logger
 from src.utils.provenance import build_run_provenance
 from src.utils.timing import timed_stage
 from src.validation.validation_pipeline import ValidationPipeline
+from src.detection.regex_detector import PERSON_MARKER_PATTERNS
 
 logger = get_logger("extraction.person_extractor")
 
@@ -76,6 +85,7 @@ class PersonExtractor(Extractor):
         # explicitly overridden.
         decision_config = config.get("decision", {})
         strict_corroboration = decision_config.get("strict_corroboration", True)
+        self.feature_score_gate = decision_config.get("feature_score_gate", False)
         self.validation_pipeline = ValidationPipeline(strict_corroboration=strict_corroboration)
         self.decision_engine = DecisionEngine(
             allow_spacy_only_corroboration=not strict_corroboration
@@ -193,9 +203,13 @@ class PersonExtractor(Extractor):
             stats.candidates_generated = len(all_candidates)
 
         with timed_stage("boundary_refinement", stats.stage_timings):
-            all_candidates = split_double_name_candidates(all_candidates, self.knowledge_base, line_index)
+            all_candidates = split_double_name_candidates(all_candidates, self.knowledge_base, line_index, cleaned_text)
             all_candidates = trim_stopword_edges(all_candidates, self.knowledge_base, line_index)
             all_candidates = trim_dictionary_confirmed_organization_edge(all_candidates, self.knowledge_base, line_index)
+            all_candidates = trim_leading_non_name_words(all_candidates, cleaned_text, line_index)
+            all_candidates = extend_particles_and_suffixes(all_candidates, cleaned_text, line_index)
+            all_candidates = extend_left_over_initials(all_candidates, cleaned_text, line_index)
+            all_candidates = trim_trailing_designations(all_candidates, cleaned_text, line_index, self.knowledge_base)
             all_candidates = refine_boundaries(all_candidates, line_index)
             # Every candidate span in the text, BEFORE filtering - name
             # propagation must not create a new candidate on text another
@@ -248,6 +262,18 @@ class PersonExtractor(Extractor):
             all_candidates.extend(new_candidates)
             stats.candidates_generated += len(new_candidates)
 
+        with timed_stage("alias_propagation", stats.stage_timings):
+            aliases = find_explicit_aliases(cleaned_text, all_candidates)
+            before = len(all_candidates)
+            all_candidates = self._propagate_aliases(
+                all_candidates, covered_candidates, aliases, cleaned_text, line_index, candidate_filter)
+            stats.candidates_generated += len(all_candidates) - before
+
+        with timed_stage("list_propagation", stats.stage_timings):
+            before = len(all_candidates)
+            all_candidates = self._propagate_through_lists(all_candidates, cleaned_text, line_index, candidate_filter)
+            stats.candidates_generated += len(all_candidates) - before
+
         _cap_bare_common_surnames(all_candidates, self.knowledge_base, known_person_names)
         if source_format in STRUCTURED_FORMATS:
             _cap_lone_single_tokens(all_candidates)
@@ -257,12 +283,22 @@ class PersonExtractor(Extractor):
             # benchmark chat fed line by line, this cap removed no false
             # positive there and moved one real name to REVIEW.
             _cap_lone_single_tokens(all_candidates, short_document=True)
+        # The final score; with the gate on (default) it is the decision -
+        # the engine's verdict and the caps above are one of its inputs
+        # (src/decision/feature_score.py). Files only, like the caps and the
+        # LLM reviewer: a live message is too short to drop a name on - the
+        # session promotes it as it repeats (tests/test_realtime.py).
+        score_persons(all_candidates, cleaned_text, self.knowledge_base)
+        if self.feature_score_gate and source_format is not None:
+            apply_score_gate(all_candidates)
 
         # Files only, like the cap above: live text is never reviewed.
         reviewer = self._get_llm_reviewer() if source_format is not None else None
+        llm_overrides: list[dict] = []
         if reviewer is not None:
             with timed_stage("llm_review", stats.stage_timings):
-                reviewer.review(all_candidates, cleaned_text)
+                reviewer.review(all_candidates, cleaned_text, score_gate=self.feature_score_gate)
+                llm_overrides = list(reviewer.overrides)
 
         with timed_stage("aggregation", stats.stage_timings):
             accepted_candidates = [c for c in all_candidates if c.state.decision == Decision.ACCEPTED]
@@ -300,9 +336,14 @@ class PersonExtractor(Extractor):
         model_info = {
             "detectors_enabled": [d.name.value for d in self.detector_manager.detectors],
             "ml_classifier_loaded": self.classifier is not None,
+            "ml_classifier_backend": getattr(self.classifier, "backend", None),
             "identity_resolution_caveat": IDENTITY_RESOLUTION_CAVEAT,
             **self.provenance,
         }
+        if llm_overrides:
+            # Every decision the LLM reviewer changed, with its reason
+            # (src/review/llm_reviewer.py).
+            model_info["llm_overrides"] = llm_overrides
         if self.classifier is not None and getattr(self.classifier, "training_metrics", None):
             model_info["ml_classifier_validation_accuracy"] = self.classifier.training_metrics.get(
                 "validation_accuracy", "n/a"
@@ -323,6 +364,7 @@ class PersonExtractor(Extractor):
             rejected=tuple(rejected_candidates),
             low_confidence_persons=tuple(low_confidence_persons),
             feedback_records=tuple(deferred_feedback_records),
+            aliases=tuple(aliases),
             statistics=stats,
             model_info=model_info,
         )
@@ -365,17 +407,96 @@ class PersonExtractor(Extractor):
         if not new_candidates:
             return []
 
-        for cr in new_candidates:
+        self._judge(new_candidates, document_text)
+        return new_candidates
+
+    def _propagate_aliases(
+        self,
+        candidates: list[CandidateResult],
+        covered_candidates: list[CandidateResult],
+        aliases: list[tuple[str, str]],
+        document_text: str,
+        line_index: LineIndex,
+        candidate_filter: Callable[[list[CandidateResult]], list[CandidateResult]] | None,
+    ) -> list[CandidateResult]:
+        """See src/candidate/explicit_aliases.py. The alias's mentions get a
+        document_name detection vouched for by the name: candidates with its
+        text are re-judged (not accepted ones, nor ones a content validator
+        rejected - an acronym rejection excepted), and occurrences no
+        detector found become candidates."""
+        names = {alias: name for alias, name in aliases}
+        if not names:
+            return candidates
+        rejudged: dict[int, CandidateResult] = {}
+        for i, old in enumerate(candidates):
+            name = names.get(old.candidate.normalized_text)
+            reason = old.state.rejection_reason or ""
+            if name is None or old.state.decision == Decision.ACCEPTED or (
+                    old.state.is_hard_rejected and not reason.startswith(EVIDENCE_REJECTIONS)
+                    and "acronym" not in reason):
+                continue
+            detection = document_name_detection(old.candidate.text, old.candidate.start, old.candidate.end, name)
+            rejudged[i] = CandidateResult(candidate=replace(
+                old.candidate, source_detections=old.candidate.source_detections + (detection,)))
+        new_candidates = CandidateFactory(line_index, self.knowledge_base).build(
+            undetected_occurrences(document_text, names, [*covered_candidates, *candidates]))
+        if candidate_filter is not None:
+            new_candidates = candidate_filter(new_candidates)
+        self._judge([*rejudged.values(), *new_candidates], document_text)
+        return [rejudged.get(i, c) for i, c in enumerate(candidates)] + new_candidates
+
+    def _propagate_through_lists(
+        self,
+        candidates: list[CandidateResult],
+        document_text: str,
+        line_index: LineIndex,
+        candidate_filter: Callable[[list[CandidateResult]], list[CandidateResult]] | None,
+    ) -> list[CandidateResult]:
+        """See src/candidate/list_propagation.py. Returns the candidates with
+        the list items re-judged (a candidate with the item's exact span,
+        not accepted, not rejected by a content validator) and new
+        candidates for items no detector found."""
+        kb = self.knowledge_base
+        items = items_to_propagate(document_text, candidates, lambda w: kb.is_common_word(w) and (
+            not kb.is_known_first_name(w) or kb.is_ambiguous_first_name(w)))
+        if not items:
+            return candidates
+        index_by_span = {(c.candidate.start, c.candidate.end): i for i, c in enumerate(candidates)}
+        taken = sorted((c.candidate.start, c.candidate.end) for c in candidates)
+        rejudged: dict[int, CandidateResult] = {}
+        new_detections: list[Detection] = []
+        for item in items:
+            i = index_by_span.get((item.start, item.end))
+            if i is None:
+                if not _overlaps_any(item.start, item.end, taken):
+                    new_detections.append(list_detection(item))
+                continue
+            old = candidates[i]
+            reason = old.state.rejection_reason or ""
+            if old.state.decision == Decision.ACCEPTED or (
+                    old.state.is_hard_rejected and not reason.startswith(EVIDENCE_REJECTIONS)):
+                continue
+            rejudged[i] = CandidateResult(candidate=replace(
+                old.candidate, source_detections=old.candidate.source_detections + (list_detection(item),)))
+        new_candidates = CandidateFactory(line_index, self.knowledge_base).build(new_detections)
+        if candidate_filter is not None:
+            new_candidates = candidate_filter(new_candidates)
+        self._judge([*rejudged.values(), *new_candidates], document_text)
+        return [rejudged.get(i, c) for i, c in enumerate(candidates)] + new_candidates
+
+    def _judge(self, candidates: list[CandidateResult], document_text: str) -> None:
+        """Validation, features, ML and decision for candidates added after
+        the main pass (propagation)."""
+        for cr in candidates:
             self.validation_pipeline.run(cr, self.knowledge_base, document_text)
             if not cr.state.is_hard_rejected:
                 cr.state.feature_vector = extract_features(cr, document_text, self.knowledge_base)
         if self.classifier is not None:
-            scored = [c for c in new_candidates if c.state.feature_vector is not None]
+            scored = [c for c in candidates if c.state.feature_vector is not None]
             for cr, result in zip(scored, self.classifier.predict_proba_batch([c.state.feature_vector for c in scored])):
                 cr.state.classifier_result = result
-        for cr in new_candidates:
+        for cr in candidates:
             self.decision_engine.decide(cr, document_text, self.knowledge_base)
-        return new_candidates
 
 
 def _cap_bare_common_surnames(
@@ -414,7 +535,8 @@ def _cap_bare_common_surnames(
         if not (knowledge_base.is_common_word(word) and knowledge_base.is_known_last_name(word)
                 and not knowledge_base.is_known_first_name(word)):
             continue
-        if any(d.detector == DetectorName.SPACY or d.metadata.get("pattern") in ("titled", "dictionary", DOCUMENT_NAME_PATTERN)
+        if any(d.detector == DetectorName.SPACY
+               or d.metadata.get("pattern") in PERSON_MARKER_PATTERNS | {"dictionary", DOCUMENT_NAME_PATTERN}
                for d in c.candidate.source_detections):
             continue
         if word.lower() in edges:
@@ -450,7 +572,7 @@ def _cap_lone_single_tokens(candidates: list[CandidateResult], short_document: b
         if c.state.decision != Decision.ACCEPTED or len(c.candidate.normalized_text.split()) != 1:
             continue
         patterns = {d.metadata.get("pattern") for d in c.candidate.source_detections}
-        if patterns & {"titled", DOCUMENT_NAME_PATTERN}:
+        if patterns & (PERSON_MARKER_PATTERNS | {DOCUMENT_NAME_PATTERN}):
             continue
         c.state.decision = Decision.REVIEW
         if short_document:

@@ -48,6 +48,9 @@ DEFAULT_CONFIG = {
     },
     "decision": {
         "strict_corroboration": True,  # False = comparison mode, see cli.py --loose-gate
+        # Accept / review / drop by the final score alone
+        # (src/decision/feature_score.py) - round 3, 2026-10-01.
+        "feature_score_gate": True,
     },
     "llm_reviewer": {
         # Optional final check of each file's names by a local LLM (Ollama) -
@@ -58,6 +61,10 @@ DEFAULT_CONFIG = {
         "url": "http://127.0.0.1:11434",
         "model": "llama3.1:latest",
         "model_digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+        # With the score gate (default): P(person) moves the final score by
+        # score_weight x (2p - 1), and the score decides. Without it:
+        "score_weight": 0.3,
+        "score_weight_down": 0.8,    # when P(person) < 0.5
         "demote_below": 0.3,          # ACCEPTED -> REVIEW below this P(person)
         "promote_at_or_above": None,  # REVIEW -> ACCEPTED at/above this; None = off (owner decision)
     },

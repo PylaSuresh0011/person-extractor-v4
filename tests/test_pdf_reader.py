@@ -178,3 +178,71 @@ def test_pdf_mentions_are_located_by_page(tmp_path):
     found = {(p.display_text, m.candidate.location.page_number, m.candidate.location.line_number)
              for p in result.persons for m in p.mentions}
     assert found == {("Dr. Suresh Kumar", 2, 2), ("Dr. Suresh Kumar", 3, 4), ("Priya Raman", 3, 3)}
+
+
+# --- A compiled helper module the operating system refuses to load ----------
+# 2026-10-07: Windows Smart App Control blocked fontTools' compiled
+# bezierTools, and every PDF with a CFF font failed to read. A file that is
+# no real library gives the same kind of ImportError (name + path of the
+# compiled file), so the fallback is tested without the policy.
+
+def _blocked_module(tmp_path: Path, monkeypatch, package: str) -> ImportError:
+    """A package whose `helper` module exists compiled (unloadable) and as
+    source. Returns the ImportError importing it raises."""
+    import importlib
+    import importlib.machinery
+
+    pkg = tmp_path / package
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "helper.py").write_text("ORIGIN = 'python source'\n", encoding="utf-8")
+    (pkg / f"helper{importlib.machinery.EXTENSION_SUFFIXES[0]}").write_bytes(b"not a real library")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    importlib.invalidate_caches()
+    try:
+        importlib.import_module(f"{package}.helper")
+    except ImportError as exc:
+        return exc
+    raise AssertionError("the unloadable compiled module was imported")
+
+
+def test_blocked_compiled_module_is_loaded_from_its_python_source(tmp_path, monkeypatch):
+    import importlib
+
+    from src.io.pdf_reader import _load_python_source_instead
+
+    exc = _blocked_module(tmp_path, monkeypatch, "blockedpkg_a")
+    assert _load_python_source_instead(exc) is True
+    assert importlib.import_module("blockedpkg_a.helper").ORIGIN == "python source"
+
+
+def test_a_package_that_is_not_installed_is_left_alone():
+    from src.io.pdf_reader import _load_python_source_instead
+
+    try:
+        import a_package_that_does_not_exist_anywhere  # noqa: F401
+    except ImportError as exc:
+        assert _load_python_source_instead(exc) is False
+
+
+def test_pdf_read_retries_after_a_blocked_compiled_module(tmp_path, monkeypatch):
+    """The read that hit the blocked module is repeated once the Python
+    source is in place - the file is read, not reported as failed."""
+    exc = _blocked_module(tmp_path, monkeypatch, "blockedpkg_b")
+    pdf_path = tmp_path / "with_text.pdf"
+    _write_pdf(pdf_path, text="Suresh Kumar attended the meeting.")
+
+    real_extract = PdfReader._extract_pages
+    calls = []
+
+    def blocked_once(path):
+        calls.append(path)
+        if len(calls) == 1:
+            raise exc
+        return real_extract(path)
+
+    monkeypatch.setattr(PdfReader, "_extract_pages", staticmethod(blocked_once))
+    result = PdfReader().read(pdf_path)
+
+    assert result.success and len(calls) == 2
+    assert result.document.full_text.strip() == "Suresh Kumar attended the meeting."

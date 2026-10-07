@@ -1,0 +1,426 @@
+extractor_name,count,extractor_decision,extractor_score,extractor_reason,verdict,matches_reference_name
+West,37,review,0.15,name list; 37 mentions,not a person name,
+Kashmir,24,review,0.55,name list; 24 mentions,not a person name,
+Hitler,20,review,0.65,spaCy; 20 mentions,correct name,Adolf Hitler (Hitler)
+Indira Gandhi,19,accepted,0.85,first+last name; spaCy; 19 mentions,correct name,Indira Gandhi (Indira)
+Rajiv Gandhi,17,accepted,0.85,first+last name; spaCy; 17 mentions,correct name,Rajiv Gandhi (Rajiv)
+Gandhi,15,accepted,0.65,name list; spaCy; 15 mentions,correct name,Mahatma Gandhi (Gandhi; M. K. Gandhi)
+Arab,13,review,0.25,name list; 13 mentions,not a person name,
+Coastal Andhra,12,review,0.30,12 mentions,not a person name,
+Jawaharlal Nehru,11,accepted,1.00,first+last name; spaCy; 11 mentions,correct name,Jawaharlal Nehru (Nehru; J. Nehru; Pandit Jawaharlal Nehru)
+National Liberation Movements,10,review,0.30,10 mentions,not a person name,
+Nehru,10,accepted,0.50,name list; spaCy; 10 mentions,correct name,Jawaharlal Nehru (Nehru; J. Nehru; Pandit Jawaharlal Nehru)
+Mahatma Gandhi,9,accepted,0.70,name list; spaCy; 9 mentions,correct name,Mahatma Gandhi (Gandhi; M. K. Gandhi)
+Ravi,9,accepted,0.65,name list; spaCy; 9 mentions,not a person name,
+Savita,9,accepted,0.65,name list; spaCy; 9 mentions,correct name,Savita
+Singh,9,accepted,0.55,name list; 9 mentions,partial/truncated/ambiguous name,
+Gayathri,8,accepted,0.65,name list; spaCy; 8 mentions,correct name,Gayathri
+Kishore,8,accepted,0.55,name list; 8 mentions,correct name,Kishore
+Krishna,8,accepted,0.65,name list; spaCy; 8 mentions,not a person name,
+Food Securty,7,review,0.30,7 mentions,not a person name,
+Godavari,7,accepted,0.65,name list; spaCy; 7 mentions,not a person name,
+West Asia,7,review,0.50,first+last name; 7 mentions,not a person name,
+Indira,6,accepted,0.65,name list; spaCy; 6 mentions,correct name,Indira Gandhi (Indira)
+Lok Sabha,6,review,0.40,spaCy; 6 mentions,not a person name,
+Meira Paibi,6,accepted,0.85,name list; spaCy; 6 mentions,not a person name,
+Bava Mahaliya,5,accepted,0.70,name list; spaCy; 5 mentions,correct name,Bava Mahaliya
+Dual Polity,5,review,0.30,5 mentions,not a person name,
+Gobind,5,accepted,0.85,kinship word; name list; 5 mentions,correct name,Gobind (Govind)
+King,5,accepted,0.15,name list; 5 mentions,correct name,Martin Luther King Jr. (Martin Luther King; Dr King; Luther King; King; Dr. Martin Luther King)
+Mandal,5,accepted,0.30,name list; 5 mentions,not a person name,
+Rajeshwari,5,accepted,0.65,name list; spaCy; 5 mentions,correct name,Rajeshwari
+Shastri,5,accepted,0.50,name list; spaCy; 5 mentions,correct name,Lal Bahadur Shastri (Shastri; Lal Bahadur)
+Andhra Region,4,review,0.30,4 mentions,not a person name,
+Bose,4,accepted,0.65,name list; spaCy; 4 mentions,correct name,Subhash Chandra Bose (Subhash Bose; Subhash; Bose)
+Janata Dal,4,review,0.50,name list; spaCy; 4 mentions,not a person name,
+K. Chandrashekhar Rao,4,accepted,0.70,name list; spaCy; 4 mentions,correct name,K. Chandrashekhar Rao (Chandrashekhar Rao)
+Malwa,4,review,0.50,spaCy; 4 mentions,not a person name,
+Mr. President,4,accepted,0.65,title; 4 mentions,not a person name,
+Operation Barga,4,review,0.30,4 mentions,not a person name,
+Rao,4,accepted,0.75,also named 'Rao Yerdoor Bangalore'; name list; 4 mentions,partial/truncated/ambiguous name,
+Umed,4,accepted,0.60,also named 'Umed Singh'; 4 mentions,correct name,Umed Singh (Umed)
+Umed Singh,4,accepted,0.70,name list; spaCy; 4 mentions,correct name,Umed Singh (Umed)
+Ali,3,accepted,0.65,name list; spaCy; 3 mentions,partial/truncated/ambiguous name,
+Arafat,3,review,0.50,spaCy; 3 mentions,correct name,Yasser Arafat (Arafat)
+Block,3,review,0.15,name list; 3 mentions,not a person name,
+Dalai Lama,3,accepted,0.70,name list; spaCy; 3 mentions,correct name,Dalai Lama
+Dr. Ambedkar,3,accepted,0.85,title; name list; spaCy; 3 mentions,correct name,B.R. Ambedkar (Ambedkar; Dr. Ambedkar; BR Ambedkar)
+Gamal Abdel Nasser,3,accepted,0.70,name list; spaCy; 3 mentions,correct name,Gamal Abdel Nasser (Nasser)
+Gregorian,3,accepted,0.55,name list; 3 mentions,not a person name,
+Lal Bahadur Shastri,3,accepted,0.85,first+last name; spaCy; 3 mentions,correct name,Lal Bahadur Shastri (Shastri; Lal Bahadur)
+Lenin,3,accepted,0.65,name list; spaCy; 3 mentions,correct name,Vladimir Lenin (Lenin)
+Lord Rama,3,accepted,0.90,first+last name; 3 mentions,correct name,Lord Rama
+Mahanadi,3,accepted,0.65,list of names,not a person name,
+Mao Zedong,3,review,0.50,spaCy; 3 mentions,correct name,Mao Zedong (Mao)
+Meira,3,accepted,0.55,name list; 3 mentions,not a person name,
+Mishrilal,3,review,0.50,spaCy; 3 mentions,correct name,Mishrilal
+Morarji Desai,3,accepted,0.70,name list; spaCy; 3 mentions,correct name,Morarji Desai
+Panchayati Raj,3,review,0.60,name list; spaCy; 3 mentions,not a person name,
+Sanjeeva Reddy,3,accepted,0.85,first+last name; spaCy; 3 mentions,correct name,Neelam Sanjeeva Reddy (Sanjeeva Reddy)
+Seth,3,accepted,0.65,name list; spaCy; 3 mentions,correct name,Damodar Swarup Seth (D S Seth; Seth)
+Subhash Chandra Bose,3,accepted,0.85,first+last name; spaCy; 3 mentions,correct name,Subhash Chandra Bose (Subhash Bose; Subhash; Bose)
+Advani,2,accepted,0.35,name list,correct name,L.K. Advani (Advani)
+Aila,2,accepted,0.60,name list; spaCy,not a person name,
+Ambedkar,2,accepted,0.45,name list; spaCy,correct name,B.R. Ambedkar (Ambedkar; Dr. Ambedkar; BR Ambedkar)
+Assom,2,review,0.35,capitalised name shape,not a person name,
+Ayub Khan,2,accepted,0.80,first+last name; spaCy,correct name,Ayub Khan
+Bachao Andolan,2,review,0.45,spaCy,not a person name,
+Bava,2,accepted,0.45,name list; spaCy,partial/truncated/ambiguous name,Bava Mahaliya
+Cauveri,2,accepted,0.70,list of names; spaCy,not a person name,
+Charan Singh,2,accepted,0.80,first+last name; spaCy,correct name,Charan Singh
+Deve Gowda,2,accepted,0.65,name list; spaCy,correct name,Deve Gowda
+Dr King,2,accepted,0.55,title; name list; spaCy,correct name,Martin Luther King Jr. (Martin Luther King; Dr King; Luther King; King; Dr. Martin Luther King)
+Dr. B. R. Ambedkar,2,accepted,1.00,title; name list; spaCy,correct name,B.R. Ambedkar (Ambedkar; Dr. Ambedkar; BR Ambedkar)
+Gondwana,2,review,0.45,spaCy,not a person name,
+Harry Truman,2,accepted,0.95,name list; spaCy,correct name,Harry Truman
+Jan Sangh,2,accepted,0.80,name list; spaCy,not a person name,
+Jayaprakash Narayan,2,accepted,0.55,first+last name,correct name,Jayaprakash Narayan (Jaya Prakash Narayan)
+Jowar Oilseeds,2,review,0.35,spaCy,not a person name,
+Ken Saro Wiwa,2,accepted,0.80,name list; spaCy,correct name,Ken Saro Wiwa
+Keshavanada Bharati,2,accepted,0.55,name list,correct name,Keshavananda Bharati (Keshavanada Bharati)
+Kuo-Min-Tang,2,review,0.45,spaCy,not a person name,
+Kwame Nkrumah,2,accepted,0.80,first+last name; spaCy,correct name,Kwame Nkrumah
+Mahabubnagar,2,review,0.45,spaCy,not a person name,
+Maharaja,2,accepted,0.35,name list,not a person name,
+Majauli,2,review,0.45,spaCy,not a person name,
+Marfa Vasileva,2,review,0.45,spaCy,correct name,Marfa Vasileva
+Maulana Azad,2,accepted,0.95,first+last name; spaCy,correct name,Maulana Azad
+Medak,2,review,0.45,spaCy,not a person name,
+Medha Patkar,2,accepted,0.80,first+last name; spaCy,correct name,Medha Patkar
+Narasimha,2,accepted,0.60,list of names,correct name,Narasimha
+Narmada,2,review,0.60,list of names,not a person name,
+Nnamdi Azikiwe,2,accepted,0.70,name list,correct name,Nnamdi Azikiwe (Azikiwe)
+Potti Sriramulu,2,accepted,0.55,name list,correct name,Potti Sriramulu
+Preamble,2,review,0.25,capitalised name shape,not a person name,
+Prof. Jayashankar,2,accepted,0.80,title; spaCy,correct name,Kottapally Jayashankar (Prof. Jayashankar; Professor Jayashankar; Jayashankar)
+Professor Jayashankar,2,accepted,0.80,title; spaCy,correct name,Kottapally Jayashankar (Prof. Jayashankar; Professor Jayashankar; Jayashankar)
+Rachel Carson,2,accepted,0.95,first+last name; spaCy,correct name,Rachel Carson
+Rahman,2,accepted,0.60,name list; spaCy,correct name,Mujibur Rahman (Mujibur Rahaman; Sheik Mujib; Rahman)
+Rama Rao,2,accepted,0.70,first+last name,correct name,N.T. Rama Rao (NTR; Rama Rao)
+Ramya,2,accepted,0.50,name list,correct name,Ramya
+Ranga Reddy,2,review,0.80,first+last name; spaCy,not a person name,
+Rangareddy,2,review,0.45,spaCy,not a person name,
+Retd,2,review,0.45,spaCy,not a person name,
+Salma,2,accepted,0.50,name list,correct name,Salma
+Shivaiah,2,review,0.45,spaCy,correct name,Shivaiah
+Sri M. Papaiah,2,accepted,0.80,title; name list; spaCy,correct name,M. Papaiah
+Stalin,2,accepted,0.45,name list; spaCy,correct name,Stalin
+T.N. Seshan,2,review,0.45,spaCy,correct name,T.N. Seshan
+Tapati,2,accepted,0.50,name list,not a person name,
+Tsar Nicholas II,2,review,0.55,name list; spaCy,correct name,Tsar Nicholas II
+Tungabhadra,2,review,0.45,spaCy,not a person name,
+Yuri Gagarin,2,accepted,0.80,name list; spaCy,correct name,Yuri Gagarin
+Zulfikar Ali Bhutto,2,accepted,0.65,name list; spaCy,correct name,Zulfikar Ali Bhutto
+Aai,1,review,0.45,spaCy,partial/truncated/ambiguous name,Aai Khada
+Acharya,1,accepted,0.85,list of names; name list,partial/truncated/ambiguous name,J.B. Kriplani (Kriplani)
+Adarsh,1,review,0.50,name list,not a person name,
+Adavallu Ekamaite,1,review,0.45,spaCy,not a person name,
+Adolf Hitler,1,accepted,0.80,name list; spaCy,correct name,Adolf Hitler (Hitler)
+Afghanisthan,1,review,0.45,spaCy,not a person name,
+Agricultural Labourer,1,review,0.35,spaCy,not a person name,
+Ajai Niumai,1,review,0.45,spaCy,correct name,Ajai Niumai
+Ajmer,1,review,0.50,name list,not a person name,
+Akadia,1,review,0.45,spaCy,not a person name,
+Alakananda,1,accepted,0.50,name list,not a person name,
+Alexander Solzhenitsyn,1,accepted,0.80,name list; spaCy,correct name,Alexander Solzhenitsyn
+Allende,1,accepted,0.35,name list,correct name,Salvador Allende (Allende; S Allende)
+Alluri Satyanarayana Raju,1,accepted,0.65,first+last name; spaCy,correct name,Alluri Satyanarayana Raju
+Alsace,1,review,0.70,list of names; spaCy,not a person name,
+Andaman,1,review,0.45,spaCy,not a person name,
+Andhra Mahasabha,1,review,0.45,spaCy,not a person name,
+Andrei Sakharov,1,accepted,0.80,name list; spaCy,correct name,Andrei Sakharov
+Angara,1,review,0.45,spaCy,not a person name,
+Anil Agrawal,1,accepted,0.80,first+last name; spaCy,correct name,Anil Agrawal
+Annamalai,1,review,0.45,spaCy,not a person name,
+Arav,1,review,0.45,spaCy,not a person name,
+Aravalis,1,review,0.45,spaCy,not a person name,
+Archduke,1,review,0.45,spaCy,not a person name,
+Armstrong,1,accepted,0.60,name list; spaCy,correct name,Neil Armstrong (Armstrong)
+Aroma Konda,1,accepted,0.55,name list,not a person name,
+Azikiwe,1,review,0.45,spaCy,correct name,Nnamdi Azikiwe (Azikiwe)
+Azim Premji,1,accepted,0.70,first+last name,not a person name,
+Babri Masjid,1,review,0.45,spaCy,not a person name,
+Bachao Anodolan,1,review,0.45,spaCy,not a person name,
+Banga,1,accepted,0.35,name list,not a person name,
+Bao,1,review,0.45,spaCy,partial/truncated/ambiguous name,Bao Dai
+Benito,1,accepted,0.50,name list,partial/truncated/ambiguous name,Benito Mussolini (Mussolini)
+Betwa,1,review,0.45,spaCy,not a person name,
+Bezawada,1,accepted,0.35,name list,partial/truncated/ambiguous name,Bezawada Gopala Reddy
+Bhakra Dam,1,review,0.55,name list; spaCy,not a person name,
+Bharatiya Lok Dal,1,review,0.45,spaCy,not a person name,
+Bhaskar Rao,1,accepted,0.80,first+last name; spaCy,correct name,N. Bhaskar Rao (Bhaskar Rao)
+Bien,1,review,0.35,name list,not a person name,
+Bismarck,1,review,0.45,spaCy,correct name,Bismarck
+Bolshevik,1,review,0.45,spaCy,not a person name,
+Boris Yelstin,1,accepted,0.80,name list; spaCy,correct name,Boris Yeltsin (Boris Yelstin)
+Burgula Ramakrishna Rao,1,accepted,0.65,first+last name; spaCy,correct name,Burgula Ramakrishna Rao (Burugula Ramakrishana Rao)
+Burugula Ramakrishana Rao,1,accepted,0.65,name list; spaCy,correct name,Burgula Ramakrishna Rao (Burugula Ramakrishana Rao)
+Cachar,1,review,0.45,spaCy,not a person name,
+Chamba,1,review,0.45,spaCy,not a person name,
+Chandrasekhar,1,accepted,0.50,name list,correct name,Chandra Shekhar (Chandrasekhar)
+Chandrashekhar Rao,1,accepted,0.65,name list; spaCy,correct name,K. Chandrashekhar Rao (Chandrashekhar Rao)
+Che Guevera,1,accepted,0.80,name list; spaCy,correct name,Che Guevara (Che Guevera)
+Chiang Kaishek Environmental,1,review,0.35,spaCy,partial/truncated/ambiguous name,Chiang Kai-shek (Chiang)
+Chitto Maiti,1,accepted,0.65,name list; spaCy,correct name,Chitto Maiti
+Choudhry Rehmat Ali,1,accepted,0.65,name list; spaCy,correct name,Choudhry Rehmat Ali (Rehmat Ali)
+Churchill,1,review,0.45,spaCy,correct name,Winston Churchill (Churchill)
+Dai,1,accepted,0.60,name list; spaCy,partial/truncated/ambiguous name,Bao Dai
+Damodar Swarup Seth,1,accepted,0.80,first+last name; spaCy,correct name,Damodar Swarup Seth (D S Seth; Seth)
+Dang,1,accepted,0.35,name list,not a person name,
+Darjeeling,1,review,0.45,spaCy,not a person name,
+Deccani,1,review,0.45,spaCy,not a person name,
+Democratic-Capitalist Block,1,review,0.45,name list,not a person name,
+Dhirendra Nath Datta,1,accepted,0.65,first+last name; spaCy,correct name,Dhirendra Nath Datta
+Dhoom Dhaam,1,review,0.35,spaCy,not a person name,
+Diamond Jubilee,1,review,0.80,name list; spaCy,not a person name,
+Digvijay Singhji,1,accepted,0.65,salutation,correct name,Digvijay Singh (Digvijay Singhji)
+Doda Betta,1,review,0.45,spaCy,not a person name,
+Doras,1,review,0.45,spaCy,not a person name,
+Dorothea Lange,1,accepted,0.80,first+last name; spaCy,correct name,Dorothea Lange
+Dr. B.R. Ambedkar,1,accepted,1.00,title; name list; spaCy,correct name,B.R. Ambedkar (Ambedkar; Dr. Ambedkar; BR Ambedkar)
+Dr. Chandra Shekhar Balachandran,1,accepted,1.00,title; first+last name; spaCy,correct name,Chandra Shekhar Balachandran
+Dr. G. Anand,1,accepted,1.00,title; name list; spaCy,correct name,G. Anand
+Dr. I. Thirumali Senior Fellow,1,accepted,0.70,title; spaCy,partial/truncated/ambiguous name,I. Thirumali
+Dr. K. Narayana Reddy,1,accepted,1.00,title; first+last name; spaCy,correct name,K. Narayana Reddy
+Dr. K.K. Kailash,1,accepted,1.00,title; name list; spaCy,correct name,K.K. Kailash
+Dr. Karen Haydoc,1,accepted,1.00,title; name list; spaCy,correct name,Karen Haydock (Karen Haydoc; Karen Hadyoc)
+Dr. M.V. Srinivasan,1,accepted,1.00,title; name list; spaCy,correct name,M.V. Srinivasan
+Dr. Manmohan Singh,1,accepted,1.00,title; name list; spaCy,correct name,Manmohan Singh
+Dr. Martin Luther King,1,accepted,1.00,title; name list; spaCy,correct name,Martin Luther King Jr. (Martin Luther King; Dr King; Luther King; King; Dr. Martin Luther King)
+Dr. Martin Luther King Jr,1,accepted,1.00,title; name list; spaCy,correct name,Martin Luther King Jr. (Martin Luther King; Dr King; Luther King; King; Dr. Martin Luther King)
+Dr. Martin Lutherkinggiving,1,accepted,1.00,title; name list; spaCy,partial/truncated/ambiguous name,Martin Luther King Jr. (Martin Luther King; Dr King; Luther King; King; Dr. Martin Luther King)
+Dr. N. Chandrayudu,1,accepted,0.80,title; spaCy,correct name,N. Chandrayudu
+Dr. N. Upender Reddy,1,accepted,1.00,title; name list; spaCy,correct name,N. Upender Reddy
+Dr. Racharla Ganapathi,1,accepted,0.80,title; spaCy,correct name,Racharla Ganapathi
+Dr. Rajendra Prasad,1,accepted,1.00,title; first+last name; spaCy,correct name,Rajendra Prasad
+Dr. Ramani Atkuri Medical Practitioner,1,accepted,0.90,title; name list; spaCy,partial/truncated/ambiguous name,Ramani Atkuri
+Dr. S. Venkataratnam,1,accepted,0.80,title; spaCy,correct name,S. Venkataratnam
+Dr. Subramanya,1,accepted,0.80,title; spaCy,partial/truncated/ambiguous name,Subramanian Swamy (Subramanya swamy)
+Dr. Sukanya Bose,1,accepted,1.00,title; name list; spaCy,correct name,Sukanya Bose
+Dr. Venkateshwara Rao,1,accepted,1.00,title; name list; spaCy,correct name,T. Venkateshwara Rao
+Dravida Munnetra Kazagam,1,review,0.45,spaCy,not a person name,
+Elizabeth Eckford,1,review,0.80,name list; spaCy,correct name,Elizabeth Eckford
+Eric,1,accepted,0.60,name list; spaCy,partial/truncated/ambiguous name,Eric Hobsbawm
+Eric Hobsbawm,1,accepted,0.80,name list; spaCy,correct name,Eric Hobsbawm
+Fascism,1,review,0.35,spaCy,not a person name,
+Fazl Ali,1,review,0.65,name list; spaCy,correct name,Fazl Ali (Fazal Ali)
+Fedor Belov,1,accepted,0.80,first+last name; spaCy,correct name,Fedor Belov
+Fidel Castro,1,accepted,0.80,first+last name; spaCy,correct name,Fidel Castro
+Franco,1,accepted,0.60,name list; spaCy,correct name,Franco
+Franklin Roosevelt,1,accepted,0.80,name list; spaCy,correct name,Franklin Roosevelt
+Franz Ferdinand,1,accepted,0.80,first+last name; spaCy,correct name,Franz Ferdinand
+Fuhrer I,1,review,0.45,spaCy,not a person name,
+Gajwel,1,review,0.45,spaCy,not a person name,
+Gangetic,1,review,0.35,capitalised name shape,not a person name,
+Garhwal Himalayas,1,review,0.45,spaCy,not a person name,
+Gestapo,1,review,0.45,spaCy,not a person name,
+Ghanpur,1,review,0.45,spaCy,not a person name,
+Godse,1,accepted,0.45,name list; spaCy,correct name,Nathuram Godse (Godse)
+Gorbachev,1,review,0.45,spaCy,correct name,Mikhail Gorbachev (Gorbachev; President Gorbachev)
+Gouthu Latchanna,1,accepted,0.70,list of names; spaCy,correct name,Gouthu Latchanna
+Govind,1,accepted,0.60,name list; spaCy,correct name,Gobind (Govind)
+Grace Oviya,1,accepted,0.70,first+last name,correct name,Grace Oviya
+Hari Prasad,1,accepted,0.70,first+last name,partial/truncated/ambiguous name,Hari Prasad Samantha
+Hari Singh,1,accepted,0.80,first+last name; spaCy,correct name,Hari Singh
+Harvard Crimson,1,review,0.45,spaCy,not a person name,
+Hasrat Mohani,1,review,0.45,spaCy,correct name,Hasrat Mohani (Maulana Hasrat Mohani)
+Hemanta Margashira,1,review,0.45,spaCy,not a person name,
+Herbert Macaulay,1,accepted,0.80,name list; spaCy,correct name,Herbert Macaulay (Macaulay)
+Himadri,1,review,0.50,name list,not a person name,
+Hjalmar Schacht,1,accepted,0.80,first+last name; spaCy,correct name,Hjalmar Schacht (Schacht)
+Hridaynath,1,review,0.45,spaCy,partial/truncated/ambiguous name,Hridaynath Kunzru
+Hussain,1,accepted,0.50,name list,not a person name,
+Indi Raja,1,accepted,0.95,first+last name; spaCy,correct name,Indi Raja
+Irom Sharmila,1,accepted,0.65,first+last name; spaCy,correct name,Irom Sharmila
+J. Nehru,1,accepted,0.65,name list; spaCy,correct name,Jawaharlal Nehru (Nehru; J. Nehru; Pandit Jawaharlal Nehru)
+J.V. Narsinga Rao,1,accepted,0.65,name list; spaCy,correct name,J.V. Narsinga Rao
+Jagityala Jaitrayatra,1,review,0.45,spaCy,not a person name,
+Jagjivan Ram,1,review,0.65,name list; spaCy,correct name,Jagjivan Ram
+Jahan,1,accepted,0.35,name list,not a person name,
+Jalsindhi,1,review,0.45,spaCy,not a person name,
+Jangoan,1,review,0.45,spaCy,not a person name,
+Jaya Prakash Narayan,1,accepted,0.60,first+last name,correct name,Jayaprakash Narayan (Jaya Prakash Narayan)
+Jeevan Reddy,1,accepted,0.80,first+last name; spaCy,correct name,B.P. Jeevan Reddy (Jeevan Reddy)
+Jhath Lenka,1,accepted,0.65,name list; spaCy,correct name,Jhath Lenka
+Joan V. Bondurant,1,accepted,0.80,name list; spaCy,correct name,Joan V. Bondurant
+Jogulamba Dt,1,review,0.45,spaCy,not a person name,
+Jordon,1,review,0.50,name list,not a person name,
+Josip Broz Tito,1,accepted,0.80,name list; spaCy,correct name,Josip Broz Tito (Tito)
+Jyoti Basu,1,accepted,0.80,first+last name; spaCy,correct name,Jyoti Basu
+K. M. Panikkar,1,accepted,0.65,name list; spaCy,correct name,K.M. Panikkar
+Kailash,1,review,0.50,name list,not a person name,
+Kalo Rano,1,review,0.45,spaCy,correct name,Kalo Rano
+Kannaiah,1,accepted,0.70,list of names; spaCy,correct name,Kannaiah
+Kanyakumari,1,review,0.45,spaCy,not a person name,
+Karthika,1,accepted,0.50,name list,not a person name,
+Kasargod,1,review,0.45,spaCy,not a person name,
+Kashmiris,1,review,0.45,spaCy,not a person name,
+Kaspal,1,review,0.45,spaCy,not a person name,
+Katikaparlu,1,review,0.45,spaCy,not a person name,
+Ken,1,accepted,0.60,name list; spaCy,not a person name,
+Ken Saro Wiwa Peasant,1,accepted,0.70,name list; spaCy,partial/truncated/ambiguous name,Ken Saro Wiwa
+Khan,1,accepted,0.35,name list,partial/truncated/ambiguous name,
+Khasi,1,review,0.45,spaCy,not a person name,
+Khasis,1,review,0.45,spaCy,not a person name,
+Khedu Bai,1,accepted,0.65,name list; spaCy,correct name,Khedu Bai
+King Mahendra,1,accepted,0.55,first+last name; spaCy,correct name,King Mahendra
+Kissan Majdoor,1,review,0.45,spaCy,not a person name,
+Koeris,1,review,0.45,spaCy,not a person name,
+Konkan,1,review,0.45,spaCy,not a person name,
+Kosi,1,review,0.45,name list; spaCy,not a person name,
+Kotli Dun,1,review,0.45,spaCy,not a person name,
+Kottapally Jayashankar,1,review,0.45,spaCy,correct name,Kottapally Jayashankar (Prof. Jayashankar; Professor Jayashankar; Jayashankar)
+Kulsumpura,1,review,0.45,spaCy,not a person name,
+Kulu,1,review,0.45,spaCy,not a person name,
+Kumar Chaudhury,1,accepted,0.80,first+last name; spaCy,partial/truncated/ambiguous name,Rohini Kumar Chaudhury
+Kundu Rano,1,accepted,0.55,name list,correct name,Kundu Rano
+Lakshmi,1,accepted,0.50,name list,partial/truncated/ambiguous name,
+Lakshmi Thimmapuram,1,accepted,0.80,name list; spaCy,correct name,Lakshmi Thimmapuram
+Lakshmikanth Rao,1,accepted,0.65,name list; spaCy,correct name,Lakshmikanth Rao
+Lal Bahadur,1,accepted,0.80,first+last name; spaCy,correct name,Lal Bahadur Shastri (Shastri; Lal Bahadur)
+Lambadi Nangarabheri,1,review,0.45,spaCy,not a person name,
+Lankan,1,review,0.55,also named 'Lankan Tamil',not a person name,
+Lhotse Dzong,1,review,0.45,spaCy,not a person name,
+Lohit,1,accepted,0.50,name list,not a person name,
+Longowal,1,review,0.45,spaCy,correct name,H.S. Longowal (Sant Langowal; Longowal)
+Lorenz,1,accepted,0.60,name list; spaCy,not a person name,
+Lorraine,1,review,0.60,name list; spaCy,not a person name,
+Lusitania,1,review,0.45,spaCy,not a person name,
+Luther King,1,accepted,0.55,name list; spaCy,correct name,Martin Luther King Jr. (Martin Luther King; Dr King; Luther King; King; Dr. Martin Luther King)
+M. A. Jinnah,1,review,0.45,spaCy,correct name,M.A. Jinnah (Jinnah)
+M. K. GANDHI,1,accepted,0.65,name list; spaCy,correct name,Mahatma Gandhi (Gandhi; M. K. Gandhi)
+M. N. Roy,1,accepted,0.80,name list; spaCy,correct name,M.N. Roy
+M.N. Roy,1,review,0.65,name list; spaCy,correct name,M.N. Roy
+Macaulay,1,review,0.45,spaCy,correct name,Herbert Macaulay (Macaulay)
+Madiga Dandora,1,review,0.45,spaCy,not a person name,
+Mahaliya,1,accepted,0.70,list of names; spaCy,partial/truncated/ambiguous name,Bava Mahaliya
+Mahasabha,1,review,0.45,name list; spaCy,not a person name,
+Mahendra Singh Tikait,1,accepted,0.80,first+last name; spaCy,correct name,Mahendra Singh Tikait
+Mahon,1,accepted,0.35,name list,not a person name,
+Maikal,1,review,0.45,spaCy,not a person name,
+Malaya,1,accepted,0.50,name list,not a person name,
+Manchi Pustakam,1,review,0.45,spaCy,not a person name,
+Mao,1,review,0.45,spaCy,correct name,Mao Zedong (Mao)
+Margaret,1,accepted,0.60,name list; spaCy,partial/truncated/ambiguous name,Margaret W. Fisher
+Marri Chenna Reddy,1,accepted,0.80,name list; spaCy,correct name,Marri Chenna Reddy
+Maulana,1,accepted,0.70,name list; spaCy,partial/truncated/ambiguous name,
+Metre,1,review,0.45,spaCy,not a person name,
+Mikhail,1,accepted,0.60,name list; spaCy,partial/truncated/ambiguous name,
+Mikhail Gorbachev,1,accepted,0.80,name list; spaCy,correct name,Mikhail Gorbachev (Gorbachev; President Gorbachev)
+Mikhail Mikhailovich,1,accepted,0.80,name list; spaCy,correct name,Mikhail Mikhailovich
+Mizos,1,review,0.45,spaCy,not a person name,
+Mohammad Iqbal,1,accepted,0.80,first+last name; spaCy,correct name,Mohammad Iqbal
+Mokudebba,1,review,0.45,spaCy,not a person name,
+Moon,1,accepted,0.60,name list; spaCy,not a person name,
+Mountbatten,1,review,0.45,spaCy,correct name,Mountbatten
+Mr. Fazal,1,accepted,0.80,title; spaCy,partial/truncated/ambiguous name,Fazl Ali (Fazal Ali)
+Mr. K. M. Munshi,1,accepted,1.00,title; name list; spaCy,correct name,K.M. Munshi
+Mr. Neelam Sanjeeva Reddy,1,accepted,1.00,title; first+last name; spaCy,correct name,Neelam Sanjeeva Reddy (Sanjeeva Reddy)
+Mr. Pramatha Ranjan Thakur,1,accepted,1.00,title; first+last name; spaCy,correct name,Pramatha Ranjan Thakur (Thakur; Mr. Thakur)
+Mr. Rohini,1,accepted,0.95,title; name list; spaCy,partial/truncated/ambiguous name,Rohini Kumar Chaudhury
+Mr. Thakur,1,accepted,0.70,title; name list; spaCy,correct name,Pramatha Ranjan Thakur (Thakur; Mr. Thakur)
+Muhammad Abdullah,1,accepted,0.80,first+last name; spaCy,correct name,Sheikh Muhammad Abdullah (Sheikh Abdullah; Sheik Abdullah; Muhammad Abdullah)
+Mujibur Rahman,1,accepted,0.55,name list,correct name,Mujibur Rahman (Mujibur Rahaman; Sheik Mujib; Rahman)
+Mussolini,1,review,0.45,spaCy,correct name,Benito Mussolini (Mussolini)
+Mussuorie,1,review,0.45,spaCy,not a person name,
+Mysore,1,review,0.50,name list,not a person name,
+Nanga Parbat,1,review,0.45,spaCy,not a person name,
+Napalm,1,review,0.35,spaCy,not a person name,
+Narkondam,1,review,0.45,spaCy,not a person name,
+Nathuram Godse,1,accepted,0.65,name list; spaCy,correct name,Nathuram Godse (Godse)
+National Liberation,1,review,0.25,capitalised name shape,not a person name,
+Nayibrahmins,1,review,0.45,spaCy,not a person name,
+Neha,1,accepted,0.60,name list; spaCy,correct name,Neha
+Neil,1,accepted,0.60,name list; spaCy,partial/truncated/ambiguous name,Neil Armstrong (Armstrong)
+Nguyen,1,accepted,0.35,name list,not a person name,
+Nirmal,1,accepted,0.50,name list,not a person name,
+Noahkhali,1,review,0.45,spaCy,not a person name,
+Oraon,1,review,0.45,spaCy,not a person name,
+Owens,1,accepted,0.45,name list; spaCy,not a person name,
+P.V. Narasimha Rao,1,accepted,0.65,name list; spaCy,correct name,P.V. Narasimha Rao
+Palakondas,1,review,0.45,spaCy,not a person name,
+Palamur,1,review,0.45,spaCy,not a person name,
+Palani,1,review,0.45,spaCy,not a person name,
+Pan,1,accepted,0.50,name list,not a person name,
+Pan Africanism,1,review,0.80,name list; spaCy,not a person name,
+Panchayat,1,review,0.35,spaCy,not a person name,
+Panchyat,1,review,0.45,spaCy,not a person name,
+Patrice Lumumba,1,accepted,0.80,first+last name; spaCy,correct name,Patrice Lumumba
+Peninsula Laurasia,1,review,0.35,spaCy,not a person name,
+Peninsular Rivers,1,review,0.55,name list; spaCy,not a person name,
+Perumatty Grama Panchayat,1,review,0.35,spaCy,not a person name,
+Pol,1,review,0.50,name list,not a person name,
+President Gorbachev,1,review,0.80,spaCy,correct name,Mikhail Gorbachev (Gorbachev; President Gorbachev)
+Prof. A. Satyanarayana,1,accepted,1.00,title; name list; spaCy,correct name,A. Satyanarayana
+Prof. Bhupendra Yadav,1,accepted,1.00,title; first+last name; spaCy,correct name,Bhupendra Yadav
+Prof. G. Omkarnath,1,accepted,0.80,title; spaCy,correct name,G. Omkarnath
+Prof. I. Laxmi,1,accepted,1.00,title; name list; spaCy,correct name,I. Laxmi
+Prof. K. Vijaya Babu,1,accepted,1.00,title; first+last name; spaCy,correct name,K. Vijaya Babu
+Prof. Karen Hadyoc,1,accepted,1.00,title; name list; spaCy,correct name,Karen Haydock (Karen Haydoc; Karen Hadyoc)
+Prof. M. Kodandaram,1,accepted,0.80,title; spaCy,correct name,M. Kodandaram
+Prof. S. Padmaja,1,accepted,0.80,title; spaCy,correct name,S. Padmaja
+Punjabi Muslim,1,review,0.55,first+last name,not a person name,
+Quasi,1,review,0.45,spaCy,not a person name,
+Rabindranath Tagore,1,accepted,0.85,first+last name,correct name,Rabindranath Tagore
+Rajiv,1,accepted,0.60,name list; spaCy,correct name,Rajiv Gandhi (Rajiv)
+Rajput,1,review,0.35,name list,not a person name,
+Ralegaon Siddhi,1,review,0.45,spaCy,not a person name,
+Ram Janmabhoomi Rath Yatra Assassination,1,review,0.70,name list; spaCy,not a person name,
+Ramachandran,1,accepted,0.35,name list,correct name,M.G. Ramachandran (MGR; Ramachandran)
+Rani Kajol,1,accepted,0.80,name list; spaCy,correct name,Rani Kajol
+Ranjan,1,accepted,0.60,name list; spaCy,partial/truncated/ambiguous name,Ranjan Rao Yerdoor
+Rao Yerdoor Bangalore,1,accepted,0.80,name list; spaCy,partial/truncated/ambiguous name,Ranjan Rao Yerdoor
+Rayalseema,1,review,0.45,spaCy,not a person name,
+Rehmat,1,review,0.45,spaCy,partial/truncated/ambiguous name,Choudhry Rehmat Ali (Rehmat Ali)
+Reich,1,review,0.35,name list,not a person name,
+S. C. Banerjee,1,accepted,0.65,name list; spaCy,correct name,S.C. Banerjee
+Saddam Husain,1,accepted,0.80,name list; spaCy,correct name,Saddam Hussein (Saddam Husain)
+Sagara Haram,1,accepted,0.70,name list; spaCy,not a person name,
+Sakala Janula Samme,1,review,0.35,spaCy,not a person name,
+Sakalajanula Samme,1,review,0.35,spaCy,not a person name,
+Sandur,1,review,0.50,name list,not a person name,
+Sansad Yatra,1,review,0.45,spaCy,not a person name,
+Sant Langowal,1,accepted,0.55,name list,correct name,H.S. Longowal (Sant Langowal; Longowal)
+Sardar Patel,1,accepted,0.80,first+last name; spaCy,correct name,Sardar Patel
+Schacht,1,accepted,0.35,name list,correct name,Hjalmar Schacht (Schacht)
+Sena,1,accepted,0.60,name list; spaCy,not a person name,
+Serge Schmemann,1,accepted,0.80,name list; spaCy,correct name,Serge Schmemann
+Sex Ratio,1,review,0.35,spaCy,not a person name,
+Sex Ratio Sex,1,review,0.35,spaCy,not a person name,
+Shah Bano,1,accepted,0.80,first+last name; spaCy,correct name,Shah Bano
+Sharad Aswayuja,1,accepted,0.70,name list,not a person name,
+Sharad Joshi,1,accepted,0.80,first+last name; spaCy,correct name,Sharad Joshi
+Sheik Abdullah,1,accepted,0.65,name list; spaCy,correct name,Sheikh Muhammad Abdullah (Sheikh Abdullah; Sheik Abdullah; Muhammad Abdullah)
+Sheik Mujib-ur,1,review,0.45,spaCy,partial/truncated/ambiguous name,Mujibur Rahman (Mujibur Rahaman; Sheik Mujib; Rahman)
+Sheikh Abdullah,1,accepted,0.95,first+last name; spaCy,correct name,Sheikh Muhammad Abdullah (Sheikh Abdullah; Sheik Abdullah; Muhammad Abdullah)
+Shiromani Akali Dal,1,review,0.45,spaCy,not a person name,
+Shishira Magha,1,review,0.45,spaCy,not a person name,
+Shiv Sena,1,review,0.70,name list,not a person name,
+Shiva,1,accepted,0.60,name list; spaCy,not a person name,
+Shivaji,1,accepted,0.50,name list,correct name,Chhatrapati Shivaji (Shivaji)
+Sind,1,review,0.45,spaCy,not a person name,
+Sindhu,1,accepted,0.50,name list,correct name,Sindhu
+Sir Stafford Cripps,1,accepted,1.00,title; name list; spaCy,correct name,Stafford Cripps
+Sitamma,1,review,0.45,spaCy,correct name,Sitamma
+Smt Bandi Maria Rani,1,accepted,0.90,title; first+last name; spaCy,correct name,Bandi Maria Rani
+Smt. D. Vijaya Lakshmi,1,accepted,1.00,title; first+last name,correct name,D. Vijaya Lakshmi
+Smt. Hemakhatri,1,accepted,0.80,title; spaCy,correct name,Hemakhatri
+Smt. K. Pavani,1,accepted,1.00,title; name list,correct name,K. Pavani
+Smt. M. Satyavathi Rao,1,accepted,0.90,title; name list,correct name,M. Satyavathi Rao
+Smt. Y. Vakula Devi,1,accepted,0.90,title; name list; spaCy,correct name,Y. Vakula Devi
+Socialist,1,review,0.25,capitalised name shape,not a person name,
+Somnath,1,accepted,0.50,name list,not a person name,
+Sri,1,accepted,0.60,name list,not a person name,
+Sri Alex,1,accepted,0.95,title; first+last name; spaCy,partial/truncated/ambiguous name,Alex M. George
+Sri Arvind Sardana,1,accepted,1.00,title; first+last name,correct name,Arvind Sardana
+Sri Ayachithula Laxman Rao,1,accepted,1.00,title; first+last name; spaCy,correct name,Ayachithula Laxman Rao
+Sri B. Sudhakar,1,accepted,1.00,title; name list; spaCy,correct name,B. Sudhakar
+Sri C.N. Subramanyam,1,accepted,0.80,title; name list; spaCy,correct name,C.N. Subramanyam
+Sri G. Gopal Reddy,1,accepted,1.00,title; first+last name; spaCy,correct name,G. Gopal Reddy
+Sri Gaddameedi Rathanga Pani Reddy,1,accepted,1.00,title; first+last name; spaCy,correct name,Gaddameedi Rathanga Pani Reddy
+Sri K. Laxminarayana,1,accepted,0.80,title; name list; spaCy,correct name,K. Laxminarayana
+Sri K. Suresh,1,accepted,1.00,title; name list; spaCy,correct name,K. Suresh
+Sri Kannaiah Dara,1,accepted,1.00,title; name list; spaCy,correct name,Kanna
+Dien Bien Phu,0,other_run,,,not a person name,
+Dravida Utkala Banga,0,other_run,,,not a person name,
+Archduke Franz Ferdinand,0,other_run,,,correct name,Franz Ferdinand

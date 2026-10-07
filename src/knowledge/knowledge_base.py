@@ -57,6 +57,23 @@ class KnowledgeBase:
     common_words: frozenset[str] = field(default_factory=frozenset)
     calendar_words: frozenset[str] = field(default_factory=frozenset)
     language_region_names: frozenset[str] = field(default_factory=frozenset)
+    # Entity-type cues (assets/entity_cues/, 2026-10-01) - see
+    # src/validation/validators/entity_type_validator.py.
+    textbook_vocabulary: frozenset[str] = field(default_factory=frozenset)
+    kinship_role_words: frozenset[str] = field(default_factory=frozenset)
+    place_building_words: frozenset[str] = field(default_factory=frozenset)
+    award_words: frozenset[str] = field(default_factory=frozenset)
+    group_words: frozenset[str] = field(default_factory=frozenset)
+    # Round 3 (2026-10-01, error brief v2 N1-N4) - entity_type_validator.py.
+    geo_context_words: frozenset[str] = field(default_factory=frozenset)
+    rivers_and_regions: frozenset[str] = field(default_factory=frozenset)
+    months_and_seasons: frozenset[str] = field(default_factory=frozenset)
+    org_head_nouns: frozenset[str] = field(default_factory=frozenset)
+    title_role_words: frozenset[str] = field(default_factory=frozenset)
+    designation_words: frozenset[str] = field(default_factory=frozenset)
+    # Names the owner confirmed as people ("Alexa", "Siri") -
+    # assets/owner_decisions/confirmed_names.txt.
+    confirmed_names: frozenset[str] = field(default_factory=frozenset)
     # Accent-folded copies of the name lists ("stefan", "nguyen"), used
     # ONLY as a fallback for tokens containing non-ASCII letters - see
     # is_known_first_name(). Built in load().
@@ -83,6 +100,18 @@ class KnowledgeBase:
             common_words=_load_set(assets_dir / "common_words" / "common_english_words.txt"),
             calendar_words=_load_set(assets_dir / "common_words" / "multilingual_calendar_words.txt"),
             language_region_names=_load_set(assets_dir / "languages" / "language_and_region_names.txt"),
+            textbook_vocabulary=_load_set(assets_dir / "entity_cues" / "textbook_vocabulary.txt"),
+            kinship_role_words=_load_set(assets_dir / "entity_cues" / "kinship_and_role_words.txt"),
+            place_building_words=_load_set(assets_dir / "entity_cues" / "place_and_building_words.txt"),
+            award_words=_load_set(assets_dir / "entity_cues" / "award_words.txt"),
+            group_words=_load_set(assets_dir / "entity_cues" / "group_words.txt"),
+            geo_context_words=_load_set(assets_dir / "entity_cues" / "geo_context_words.txt"),
+            rivers_and_regions=_load_set(assets_dir / "entity_cues" / "rivers_and_regions.txt"),
+            months_and_seasons=_load_set(assets_dir / "entity_cues" / "months_and_seasons.txt"),
+            org_head_nouns=_load_set(assets_dir / "entity_cues" / "org_head_nouns.txt"),
+            title_role_words=_load_set(assets_dir / "entity_cues" / "title_role_words.txt"),
+            designation_words=_load_set(assets_dir / "entity_cues" / "designation_words.txt"),
+            confirmed_names=_load_set(assets_dir / "owner_decisions" / "confirmed_names.txt"),
         )
         kb.first_names_folded = frozenset(fold_accents(n) for n in kb.first_names)
         kb.last_names_folded = frozenset(fold_accents(n) for n in kb.last_names)

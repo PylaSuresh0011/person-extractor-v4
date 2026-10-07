@@ -21,12 +21,15 @@ from datetime import datetime
 from pathlib import Path
 
 from config import BASE_DIR, DEFAULT_CONFIG
+from src.candidate.alias_resolution import place, resolve_aliases
 from src.candidate.boundary_refiner import refine_combined_counts
+from src.decision.feature_score import entity_reason
 from src.core.models import IDENTITY_RESOLUTION_CAVEAT
 from src.export.csv_exporter import CsvExporter
 from src.export.json_exporter import JsonExporter
 from src.export.report_exporter import ReportExporter
 from src.pipeline.orchestrator import Pipeline
+from src.utils.keep_awake import keep_awake
 from src.utils.logger import configure_logging, get_logger
 
 EXPORTERS = {
@@ -486,6 +489,16 @@ def _common_case_number(input_paths: list[str]) -> str | None:
     return case_numbers.pop() if len(case_numbers) == 1 else None
 
 
+def _add_score_and_reason(entry: dict, person) -> None:
+    """Combined row: the highest feature score over files, and the reason
+    from the first file the name was found in (src/decision/feature_score.py)."""
+    score = getattr(person, "score", None)
+    if score is not None and (entry.get("score") is None or score > entry["score"]):
+        entry["score"] = score
+    if not entry.get("entity_reason") and getattr(person, "mentions", None):
+        entry["entity_reason"] = entity_reason(person.mentions)
+
+
 def run_batch(input_paths: list[str], args: argparse.Namespace, config: dict, base_output: Path) -> int:
     failures = 0
     # Aggregates persons across every file in the batch, keyed by
@@ -509,6 +522,8 @@ def run_batch(input_paths: list[str], args: argparse.Namespace, config: dict, ba
             "decision": "review",
         })
         entry["occurrences"] += person.occurrence_count
+        entry.setdefault("places", set()).update(place(source_filename, loc) for loc in getattr(person, "locations", ()))
+        _add_score_and_reason(entry, person)
         if source_filename not in entry["files"]:
             entry["files"].append(source_filename)
         if decision == "accepted":
@@ -517,6 +532,7 @@ def run_batch(input_paths: list[str], args: argparse.Namespace, config: dict, ba
     # --phase1-only: one combined phase_1.csv for the whole list, next to
     # each file's own (src/export/phase1_exporter.py).
     phase1_names: dict | None = {} if config.get("phase1_only") else None
+    explicit_aliases: list[tuple[str, str]] = []  # "Nandamuri Taraka Ramarao (NTR)" - stated in a document
 
     for input_path in input_paths:
         stem = Path(input_path).stem
@@ -530,6 +546,7 @@ def run_batch(input_paths: list[str], args: argparse.Namespace, config: dict, ba
             from src.export.phase1_exporter import add_phase1_names
             add_phase1_names(phase1_names, result, source_filename)
             continue
+        explicit_aliases.extend(getattr(result, "aliases", ()))
         for person in result.persons:
             _merge(person, "accepted", source_filename)
         for person in result.review_persons:
@@ -549,7 +566,10 @@ def run_batch(input_paths: list[str], args: argparse.Namespace, config: dict, ba
     # combined counts across every file in this batch.
     combined = refine_combined_counts(combined)
 
-    ordered = sorted(combined.values(), key=lambda e: e["occurrences"], reverse=True)
+    # The other forms of each person under aliases; --merge-aliases makes
+    # them one row (src/candidate/alias_resolution.py).
+    ordered = resolve_aliases(list(combined.values()), explicit_aliases,
+                              merge=getattr(args, "merge_aliases", False))
 
     if getattr(args, "names_only", False):
         source = ordered if args.include_review else [e for e in ordered if e["decision"] == "accepted"]
@@ -565,9 +585,11 @@ def run_batch(input_paths: list[str], args: argparse.Namespace, config: dict, ba
     names_path.parent.mkdir(parents=True, exist_ok=True)
     with names_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["name", "total_occurrences", "decision", "source_files"])
+        writer.writerow(["name", "total_occurrences", "decision", "source_files", "aliases", "score", "entity_reason"])
         for e in ordered:
-            writer.writerow([e["display"], e["occurrences"], e["decision"], "; ".join(e["files"])])
+            writer.writerow([e["display"], e["occurrences"], e["decision"], "; ".join(e["files"]),
+                             "; ".join(e.get("aliases", [])),
+                             "" if e.get("score") is None else f"{e['score']:.2f}", e.get("entity_reason", "")])
 
     # The same summary and table as the console, also saved as text next to
     # the CSV (all_names.txt / <case>_output.txt).
@@ -637,6 +659,10 @@ def main() -> int:
                          help="Write ONLY a plain (name, occurrences) CSV, nothing else - no "
                               "report.txt, no evidence. A fresh timestamped file is written every "
                               "run, so repeated runs never overwrite each other's output.")
+    parser.add_argument("--merge-aliases", action="store_true",
+                         help="Batch output: one row per person - 'Kalam', 'Abdul Kalam' and 'Dr. Kalam' "
+                              "together, the other forms in the aliases column. Without it each form keeps "
+                              "its own row and the aliases column lists the others.")
     parser.add_argument("--include-review", action="store_true",
                          help="Only affects --names-only: also include REVIEW-bucket names (not "
                               "just ACCEPTED) in the plain names CSV, each tagged with a 'decision' "
@@ -731,10 +757,14 @@ def main() -> int:
             base_output = Path(args.output)
         else:
             base_output = BASE_DIR / "output" / Path(manifest_path).stem
-        return run_batch(input_paths, args, config, base_output)
+        # Keeps the PC awake and the run at full speed with nobody at the
+        # keyboard (src/utils/keep_awake.py).
+        with keep_awake():
+            return run_batch(input_paths, args, config, base_output)
 
     output_dir = Path(args.output) if args.output else BASE_DIR / "output"
-    result = run_extraction(args.input, output_dir, args, config)
+    with keep_awake():
+        result = run_extraction(args.input, output_dir, args, config)
     if not result.success:
         return 1
 

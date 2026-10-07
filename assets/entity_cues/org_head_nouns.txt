@@ -1,0 +1,35 @@
+# Organisation head-nouns (added 2026-10-01, round 3, error brief v2 N3): a
+# name followed by one ("Meira Paibi Movement", "Mandal Commission", "Tata
+# Motors", "Azim Premji University") or ending in one ("Shiv Sena", "Janata
+# Dal", "Jan Sangh") is an organisation, party, movement or programme.
+# Generic vocabulary.
+movement
+movements
+andolan
+andolana
+sena
+dal
+sangh
+sangam
+samiti
+sabha
+mahasabha
+parishad
+morcha
+vedika
+commission
+committee
+motors
+foods
+factory
+fasteners
+university
+college
+airport
+accord
+accords
+yatra
+samme
+league
+front
+mission

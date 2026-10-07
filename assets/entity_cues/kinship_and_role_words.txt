@@ -1,0 +1,47 @@
+# Kinship and role words (added 2026-10-01, error brief P2): on their own
+# they name a relation or a role, not a person ("Grandpa said", "Amma
+# smiled", "Lord, help us"). Only a candidate that is one of these words
+# and nothing else is rejected - "Uncle Podger" and "Mother Teresa" stay.
+# Generic vocabulary - no person names.
+grandpa
+grandma
+granny
+grandfather
+grandmother
+grandson
+granddaughter
+father
+mother
+dad
+daddy
+mum
+mummy
+mom
+mommy
+papa
+mama
+amma
+appa
+nana
+nani
+dada
+dadi
+uncle
+aunt
+auntie
+aunty
+brother
+sister
+son
+daughter
+wife
+husband
+nurse
+doctor
+teacher
+madam
+madame
+sir
+lord
+god
+goddess

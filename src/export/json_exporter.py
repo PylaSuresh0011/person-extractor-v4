@@ -25,19 +25,20 @@ class JsonExporter(BaseExporter):
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+        aliases = self._aliases_by_name(list(persons) + list(review_persons), source_path)
         payload = {
             "source_file": source_path,
             "provenance": run_info or {},
-            "accepted": [self._full_person(p, source_path) for p in persons],
-            "review": [self._full_person(p, source_path) for p in review_persons],
+            "accepted": [self._full_person(p, source_path, aliases) for p in persons],
+            "review": [self._full_person(p, source_path, aliases) for p in review_persons],
             "rejected": [self._rejected_row(c, source_path) for c in rejected],
         }
 
         output_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         return output_path
 
-    def _full_person(self, person: AggregatedPerson, source_path: str) -> dict:
-        row = self._person_row(person, source_path)
+    def _full_person(self, person: AggregatedPerson, source_path: str, aliases: dict[str, list[str]]) -> dict:
+        row = self._person_row(person, source_path, aliases.get(person.display_text))
         row["mentions"] = [
             {
                 "text": m.candidate.text,

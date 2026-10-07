@@ -149,6 +149,9 @@ def main() -> int:
     logging.getLogger("person_extractor_v4").setLevel(logging.ERROR)
     cfg = copy.deepcopy(DEFAULT_CONFIG)
     cfg["feedback"]["enabled"] = False
+    # The rules' own output is what gets judged - the pipeline's built-in
+    # reviewer must not pre-filter it (or swap its model onto the GPU).
+    cfg["llm_reviewer"]["enabled"] = False
     pipeline = Pipeline(config=cfg, base_dir=BASE_DIR)
 
     names: list[dict] = []   # one per (file, name, bucket)

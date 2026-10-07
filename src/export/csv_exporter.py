@@ -11,7 +11,7 @@ from src.export.base_exporter import BaseExporter
 
 _FIELDS = [
     "source_file", "person_name", "occurrence_count", "decision",
-    "best_confidence", "locations", "why_detected",
+    "best_confidence", "locations", "why_detected", "aliases", "score", "entity_reason",
 ]
 
 
@@ -33,8 +33,10 @@ class CsvExporter(BaseExporter):
         with output_path.open("w", newline="", encoding="utf-8") as fh:
             writer = csv.DictWriter(fh, fieldnames=_FIELDS)
             writer.writeheader()
-            for person in list(persons) + list(review_persons):
-                writer.writerow(self._person_row(person, source_path))
+            everyone = list(persons) + list(review_persons)
+            aliases = self._aliases_by_name(everyone, source_path)
+            for person in everyone:
+                writer.writerow(self._person_row(person, source_path, aliases.get(person.display_text)))
 
         if run_info:
             # A per-row CSV has no room for run-level metadata without

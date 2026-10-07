@@ -265,16 +265,36 @@ def trim_dictionary_confirmed_organization_edge(
 def _is_dictionary_full_name_pair(a: str, b: str, knowledge_base: KnowledgeBase) -> bool:
     """Order-agnostic "is this pair a known first+last name" check, same
     rule dictionary_detector._extend_window uses to build a 2-token
-    window - reused here so the split decision stays consistent with
-    what the dictionary detector itself would call a real name."""
+    window: the two tokens fill DIFFERENT roles, one a known first name
+    and the other a known last name. Until 2026-10-07 this still asked
+    "is either a first name, is either a last name", which one token on
+    both lists answers alone - "Martin" made "Martin Luther" a pair, "de"
+    made "de Klerk" one - the gap the detector closed long ago ("Forensics
+    Kumar"), left open here."""
     a_stem = _strip_possessive(a)[0].rstrip(".")
     b_stem = _strip_possessive(b)[0].rstrip(".")
-    has_first = knowledge_base.is_known_first_name(a_stem) or knowledge_base.is_known_first_name(b_stem)
-    has_last = knowledge_base.is_known_last_name(b_stem) or knowledge_base.is_known_last_name(a_stem)
-    return has_first and has_last
+    return (knowledge_base.is_known_first_name(a_stem) and knowledge_base.is_known_last_name(b_stem)) or (
+        knowledge_base.is_known_last_name(a_stem) and knowledge_base.is_known_first_name(b_stem))
 
 
-def split_double_name_candidates(candidates: list[CandidateResult], knowledge_base: KnowledgeBase, line_index: LineIndex) -> list[CandidateResult]:
+_FIRST_LETTER_RE = re.compile(r"[^\W\d_]")
+
+
+def _in_running_text(text: str, start: int, end: int) -> bool:
+    """A lowercase word directly before or after the span on its own line -
+    the span is part of a sentence ("named it Hyderabad. Mohammed Quli Qutub
+    Shah of the Shahi Dynasty"), not a line of fields ("14045551193 Jaylen
+    Brooks Farah Nasser 14045551190")."""
+    line_start = text.rfind("\n", 0, start) + 1
+    line_end = text.find("\n", end)
+    before = [w for w in text[line_start:start].split() if _FIRST_LETTER_RE.search(w)]
+    after = [w for w in text[end:line_end if line_end != -1 else len(text)].split() if _FIRST_LETTER_RE.search(w)]
+    return any(_FIRST_LETTER_RE.search(w).group().islower() for w in before[-1:] + after[:1])
+
+
+def split_double_name_candidates(
+    candidates: list[CandidateResult], knowledge_base: KnowledgeBase, line_index: LineIndex, text: str | None = None,
+) -> list[CandidateResult]:
     """Splits a single 4-token candidate into two 2-token candidates when
     both halves independently look like a real, standalone name.
 
@@ -314,6 +334,20 @@ def split_double_name_candidates(candidates: list[CandidateResult], knowledge_ba
     smuggle a weak half past anything. Titled candidates ("Dr. John
     Michael Smith") are excluded since the title already anchors the
     whole span as one person.
+
+    One confirmed half is enough only OUTSIDE running text (2026-10-07,
+    `text` given): inside a sentence a four-word span is far more often one
+    long name, and one half of a long name is easily a dictionary pair by
+    itself. Measured on three textbooks and the benchmark: the one-half
+    rule fired 12 times in sentences and bylines and every one cut a real
+    name - "Mohammed Quli Qutub Shah" into "Mohammed Quli" and "Qutub
+    Shah", "F. W. de Klerk" into "F. W." and "de Klerk", "Martin Luther
+    King Jr." into "Martin Luther" and "King Jr." (seven times). In a
+    sentence both halves must be confirmed - each a dictionary pair or
+    document-frequent. The glued speaker tags this function exists for sit
+    on lines of fields, where the one-half rule still applies; the one
+    real one in the benchmark ("Jaylen Brooks Farah Nasser") has both
+    halves document-frequent and splits either way.
     """
     text_counts = Counter(c.candidate.normalized_text for c in candidates)
 
@@ -331,7 +365,10 @@ def split_double_name_candidates(candidates: list[CandidateResult], knowledge_ba
         right_dict = _is_dictionary_full_name_pair(tokens[2], tokens[3], knowledge_base)
         left_freq = text_counts.get(left_key, 0) >= MIN_CORE_OCCURRENCES
         right_freq = text_counts.get(right_key, 0) >= MIN_CORE_OCCURRENCES
-        if not (left_dict or right_dict or (left_freq and right_freq)):
+        both_confirmed = (left_dict or left_freq) and (right_dict or right_freq)
+        one_confirmed = left_dict or right_dict
+        in_sentence = text is not None and _in_running_text(text, cr.candidate.start, cr.candidate.end)
+        if not (both_confirmed or (one_confirmed and not in_sentence)):
             result.append(cr)
             continue
 
@@ -343,6 +380,153 @@ def split_double_name_candidates(candidates: list[CandidateResult], knowledge_ba
         result.append(_slice_candidate(cr, spans, tokens, 0, 2, line_index))
         result.append(_slice_candidate(cr, spans, tokens, 2, 4, line_index))
     return result
+
+
+# --- Name boundaries in typeset text (2026-10-01) ---------------------------
+# Found on a 274-page textbook: "Vincent Van Gogh" came out as "Vincent Van",
+# "Lee De Forest" as "Lee De", "Henry Ford II" and "Pius XI" lost their
+# numerals, and "As Bayaji", "Observing Henry", "I'm Sarada" kept a word
+# from the sentence in front.
+
+NAME_PARTICLES = frozenset({"van", "von", "de", "da", "di", "du", "del", "der", "den", "la", "le",
+                            "bin", "binti", "al", "el", "dos", "das", "ter", "ten"})
+_SUFFIX_WORD_RE = re.compile(r"^(?:Jr|Sr)\.?$|^(?:II|III|IV|VI|VII|VIII|IX|XI|XII|XIII|XIV|XV|XVI)$")
+_CAP_WORD_RE = re.compile(r"^[A-Z][a-z]+(?:['’][a-z]+)?$")
+_NEXT_WORD_RE = re.compile(r"[ \t]+([^\s,;:()]+)")
+# Words that only ever open a span by accident - sentence starters and
+# contractions next to a name ("As Bayaji", "I'm Sarada", "Dear Ravi").
+LEADING_NON_NAME_WORDS = frozenset({"as", "observing", "i'm", "you've", "you're", "we're", "dear", "when", "if",
+                                    "then", "thanks", "thank", "hello", "hi", "says", "said"})
+
+
+def _respan(cr: CandidateResult, start: int, end: int, text: str, line_index: LineIndex) -> CandidateResult:
+    from src.candidate.candidate_factory import normalize_name
+    raw = text[start:end]
+    candidate = Candidate.new(text=raw, normalized_text=normalize_name(raw), start=start, end=end,
+                              page_index=cr.candidate.page_index, source_detections=cr.candidate.source_detections,
+                              location=line_index.locate(start, end))
+    return CandidateResult(candidate=candidate, state=cr.state)
+
+
+def extend_particles_and_suffixes(candidates: list[CandidateResult], text: str, line_index: LineIndex) -> list[CandidateResult]:
+    """Extends a name over what follows it on the same line when that is
+    part of the name: the word after a closing particle ("Vincent Van" ->
+    "Vincent Van Gogh", "Lee De" -> "Lee De Forest" - a name never ends on a
+    particle), a generational or regnal suffix ("Henry Ford" -> "Henry
+    Ford II", "Pius" -> "Pius XI"), or a capitalized word that a suffix
+    follows ("Martin Luther" -> "Martin Luther King Jr.")."""
+    out: list[CandidateResult] = []
+    for cr in candidates:
+        end = cr.candidate.end
+        for _ in range(3):
+            last = text[cr.candidate.start:end].split()[-1].rstrip(".").lower() if end > cr.candidate.start else ""
+            m = _NEXT_WORD_RE.match(text, end)
+            if not m:
+                break
+            word = m.group(1).rstrip("-–")
+            word_end = m.start(1) + len(word)
+            after = _NEXT_WORD_RE.match(text, word_end)
+            if last in NAME_PARTICLES and _CAP_WORD_RE.match(word):
+                end = word_end
+            elif _SUFFIX_WORD_RE.match(word):
+                end = word_end
+            elif _CAP_WORD_RE.match(word) and after and _SUFFIX_WORD_RE.match(after.group(1).rstrip("-–")):
+                end = after.start(1) + len(after.group(1).rstrip("-–"))
+            else:
+                break
+        out.append(cr if end == cr.candidate.end else _respan(cr, cr.candidate.start, end, text, line_index))
+    return out
+
+
+def trim_leading_non_name_words(candidates: list[CandidateResult], text: str, line_index: LineIndex) -> list[CandidateResult]:
+    """Drops a leading sentence word ("As Bayaji" -> "Bayaji", "Observing
+    Henry" -> "Henry") and cuts a span at a dash between words ("Ray-
+    Ganashatru" -> "Ray": a name and a title run together)."""
+    out: list[CandidateResult] = []
+    for cr in candidates:
+        start, end = cr.candidate.start, cr.candidate.end
+        spans = [(start + m.start(), start + m.end()) for m in _TOKEN_RE.finditer(text[start:end])]
+        if len(spans) >= 2 and text[spans[0][0]:spans[0][1]].lower() in LEADING_NON_NAME_WORDS:
+            spans = spans[1:]
+        for i, (s, e) in enumerate(spans[:-1]):
+            if text[s:e].endswith(("-", "–")) and e - s > 1:
+                spans = spans[:i] + [(s, e - 1)]
+                break
+        new_start, new_end = spans[0][0], spans[-1][1]
+        out.append(cr if (new_start, new_end) == (start, end) else _respan(cr, new_start, new_end, text, line_index))
+    return out
+
+
+def _can_be_name_word(word: str, knowledge_base: KnowledgeBase) -> bool:
+    """A known first or last name, or a word of two or more letters that is
+    no title and no ordinary English word."""
+    word = _strip_possessive(word)[0].rstrip(".,")
+    if len(word) < 2 or knowledge_base.is_title(word) or knowledge_base.is_honorific(word):
+        return False
+    return (knowledge_base.is_known_first_name(word) or knowledge_base.is_known_last_name(word)
+            or not knowledge_base.is_common_word(word))
+
+
+def trim_trailing_designations(
+    candidates: list[CandidateResult], text: str, line_index: LineIndex, knowledge_base: KnowledgeBase,
+) -> list[CandidateResult]:
+    """Stops a name before a designation or a place glued after it (round 3,
+    2026-10-01, error brief v2 N9): "Dr. I. Thirumali Senior Fellow" ->
+    "Dr. I. Thirumali", "Ken Saro Wiwa Peasant" -> "Ken Saro Wiwa", "Rao
+    Yerdoor Bangalore" -> "Rao Yerdoor". At least one name word stays: what
+    is left must hold a word that can be a name (2026-10-07) - "Chief
+    Seattle", twelve times in a textbook, was cut to the ordinary word
+    "Chief" because Seattle is also a city, and nothing of the person was
+    left for any later step to judge."""
+    out: list[CandidateResult] = []
+    for cr in candidates:
+        start, end = cr.candidate.start, cr.candidate.end
+        spans = [(start + m.start(), start + m.end()) for m in _TOKEN_RE.finditer(text[start:end])]
+        while len(spans) > 2 or (len(spans) == 2 and not knowledge_base.is_title(text[spans[0][0]:spans[0][1]].rstrip("."))):
+            word = text[spans[-1][0]:spans[-1][1]].rstrip(".,")
+            if (word.lower() in knowledge_base.designation_words or (
+                    knowledge_base.is_location(word) and not knowledge_base.is_known_last_name(word))
+                ) and any(_can_be_name_word(text[s:e], knowledge_base) for s, e in spans[:-1]):
+                spans = spans[:-1]
+            else:
+                break
+        new_end = spans[-1][1]
+        out.append(cr if new_end == end else _respan(cr, start, new_end, text, line_index))
+    return out
+
+
+# Initials just before a name on its line: "S.V. ", "M. ", "K. N. ".
+_INITIALS_BEFORE_RE = re.compile(r"(?<![A-Za-z.])((?:[A-Z]\.[ \t]?){1,4})[ \t]*$")
+_WORD_BEFORE_RE = re.compile(r"([A-Za-z]+)[ \t]+$")
+# Lowercase words a person's initials can follow ("by K. Ravi", "and S. Rao").
+_FUNCTION_WORDS = frozenset({"by", "and", "of", "from", "to", "with", "for", "as", "is", "was", "or", "&"})
+
+
+def extend_left_over_initials(candidates: list[CandidateResult], text: str, line_index: LineIndex) -> list[CandidateResult]:
+    """Extends a name left over the initials just before it ("Ranga Rao" ->
+    "S.V. Ranga Rao", "Girija Shankar" -> "M. Girija Shankar", 2026-10-01):
+    the dictionary window wins boundary selection and knows no initials.
+    Two or more initials always; a single one unless it follows an ordinary
+    lowercase word, where it ends a sentence ("vitamin A. Ravi said"). Not
+    after a number ("200 G.S.M. White" - a unit)."""
+    out: list[CandidateResult] = []
+    for cr in candidates:
+        start = cr.candidate.start
+        line_start = text.rfind("\n", 0, start) + 1
+        m = _INITIALS_BEFORE_RE.search(text, line_start, start)
+        if not m or cr.candidate.text[:1].islower():
+            out.append(cr)
+            continue
+        if text[line_start:m.start()].rstrip()[-1:].isdigit():
+            out.append(cr)  # "200 G.S.M. White Art Card" - a unit after a number
+            continue
+        if m.group(1).count(".") == 1:
+            word = _WORD_BEFORE_RE.search(text, line_start, m.start())
+            if word and word.group(1).islower() and word.group(1) not in _FUNCTION_WORDS:
+                out.append(cr)
+                continue
+        out.append(_respan(cr, m.start(1), cr.candidate.end, text, line_index))
+    return out
 
 
 def refine_combined_counts(combined: dict[str, dict]) -> dict[str, dict]:
@@ -374,6 +558,12 @@ def refine_combined_counts(combined: dict[str, dict]) -> dict[str, dict]:
         for f in entry["files"]:
             if f not in slot["files"]:
                 slot["files"].append(f)
+        if "places" in entry:  # where it was found - see alias_resolution.py
+            slot.setdefault("places", set()).update(entry["places"])
+        if entry.get("score") is not None and (slot.get("score") is None or entry["score"] > slot["score"]):
+            slot["score"] = entry["score"]  # feature score - see src/decision/feature_score.py
+        if entry.get("entity_reason") and not slot.get("entity_reason"):
+            slot["entity_reason"] = entry["entity_reason"]
         if entry.get("decision", "review") == "accepted":
             slot["decision"] = "accepted"
 

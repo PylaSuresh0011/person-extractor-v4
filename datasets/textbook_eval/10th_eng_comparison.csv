@@ -1,0 +1,488 @@
+extractor_name,count,extractor_decision,verdict,matches_reference_name
+English,329,review,not a person name,
+Mrs. Slater,70,accepted,correct name,Amelia Slater
+Read,55,accepted,not a person name,
+Aunt Jane,45,accepted,correct name,Aunt Jane
+Ray,45,accepted,correct name,Satyajit Ray (Manikda)
+Mrs. Jordan,39,accepted,correct name,Elizabeth Jordan (Lizzie)
+Henry,37,accepted,correct name,Henry Slater
+Jack,35,accepted,correct name,Jack
+Nick,35,accepted,correct name,Nick Vujicic
+Abel,34,accepted,correct name,Abel Merryweather
+Savitri,32,accepted,correct name,Savitri
+Jill,29,accepted,correct name,Jill
+Ben,28,accepted,correct name,Ben Jordan
+Roberge,24,accepted,correct name,Gaston Roberge
+Maya Bazaar,19,accepted,not a person name,
+Wangari Maathai,19,accepted,correct name,Wangari Maathai
+Departed,18,review,not a person name,
+Amelia,17,accepted,correct name,Amelia Slater
+Bhujaba,17,accepted,correct name,Bhujaba Patil
+I'm,16,accepted,not a person name,
+Bayaji,15,accepted,correct name,Bayaji (Baiju Nana)
+Murthy,14,accepted,partial/truncated name,
+Sarada,14,accepted,correct name,Sarada
+Maya,13,accepted,correct name,Maya
+List,12,review,not a person name,
+Ravi,12,accepted,correct name,Ravi K.
+Tony,12,accepted,correct name,Tony
+West,12,review,not a person name,
+Story,11,review,not a person name,
+Suhas,11,accepted,correct name,Suhas
+Elizabeth,9,accepted,correct name,Elizabeth Jordan (Lizzie)
+Nick Vujicic,9,accepted,correct name,Nick Vujicic
+Oral Discourse,8,review,not a person name,
+Patil,8,accepted,partial/truncated name,
+House,7,review,not a person name,
+Grandpa,6,review,not a person name,
+Kondiba,6,accepted,correct name,Kondiba Patil
+Man,6,accepted,not a person name,
+Sarala,6,accepted,correct name,Sarala
+Sunitha,6,accepted,correct name,Sunitha
+Van Gogh,6,accepted,correct name,Vincent Van Gogh
+Abel Merryweather,5,accepted,correct name,Abel Merryweather
+Henry Ford,5,accepted,correct name,Henry Ford
+Jimmy,5,accepted,correct name,Jimmy
+Kalam,5,review,correct name,A.P.J. Abdul Kalam (Abul)
+Nobel Prize,5,review,not a person name,
+Shankar,5,accepted,correct name,Shankar
+Shanti,5,accepted,correct name,Shanti
+Sivasubramania Iyer,5,accepted,correct name,Sivasubramania Iyer
+Abdul Kalam,4,accepted,correct name,A.P.J. Abdul Kalam (Abul)
+Amma,4,accepted,not a person name,
+Comment,4,review,not a person name,
+Dreamer Wake,4,review,not a person name,
+French,4,review,not a person name,
+Kondiba Patil,4,accepted,correct name,Kondiba Patil
+Mr. Sage,4,accepted,correct name,Mr Sage
+Mrs. John Shorrocks,4,accepted,correct name,Mrs John Shorrocks
+Muslim,4,accepted,not a person name,
+Mysore,4,accepted,not a person name,
+Nana,4,accepted,partial/truncated name,
+Narayana Murthy,4,accepted,correct name,N.R. Narayana Murthy
+North,4,review,not a person name,
+Ram,4,accepted,correct name,Ram
+Shiv Khera,4,accepted,correct name,Shiv Khera
+Tagore,4,accepted,correct name,Rabindranath Tagore
+Thomas Edison,4,accepted,correct name,Thomas Edison (Tommy)
+Western Ghats,4,review,not a person name,
+Abhimanyu,3,accepted,correct name,Abhimanyu
+Balarama,3,review,correct name,Balarama
+Bharath,3,accepted,correct name,Bharath
+Brahmin,3,review,not a person name,
+Buddha,3,accepted,correct name,Buddha
+Dirang,3,review,not a person name,
+Dr. Kalam,3,accepted,correct name,A.P.J. Abdul Kalam (Abul)
+Dr. Suraya Nasim,3,accepted,correct name,Suraya Nasim
+Ghatothkacha,3,review,correct name,Ghatotkacha
+Jainulabdeen,3,accepted,correct name,Jainulabdeen
+Kalekar Bapu Master,3,accepted,correct name,Kalekar Bapu Master
+Kashmir,3,accepted,not a person name,
+Koko,3,accepted,not a person name,
+Lord,3,review,not a person name,
+Lord Buddha,3,accepted,correct name,Buddha
+Madhu,3,accepted,correct name,Madhu
+Mahabubnagar,3,review,not a person name,
+Mahar,3,accepted,not a person name,
+Medora Chevalier,3,accepted,correct name,Medora Chevalier
+Neelima,3,accepted,correct name,Neelima
+Potter,3,review,not a person name,
+Rabindranath Tagore,3,accepted,correct name,Rabindranath Tagore
+Raju,3,accepted,correct name,Raju
+Ramanadha Sastry,3,accepted,correct name,Ramanadha Sastry
+Ramayana,3,review,not a person name,
+Rameswaram,3,review,not a person name,
+Ranga Rao,3,accepted,correct name,Ranga Rao (translator)
+Reader,3,review,not a person name,
+Reddy,3,accepted,partial/truncated name,
+Sastry,3,accepted,partial/truncated name,
+Satyajit Ray,3,accepted,correct name,Satyajit Ray (Manikda)
+Slaters,3,review,not a person name,
+Sri,3,accepted,not a person name,
+Sudha Murthy,3,accepted,correct name,Sudha Murthy
+Taj Mahal,3,accepted,not a person name,
+Thomas Agonyo,3,review,correct name,Thomas Agonyo
+Vicky,3,accepted,correct name,Victoria Slater (Vicky)
+Abraham Lincoln,2,accepted,correct name,Abraham Lincoln
+Aravindan,2,accepted,correct name,Aravindan
+As Bayaji,2,review,partial/truncated name,Bayaji (Baiju Nana)
+Babasaheb,2,accepted,correct name,B.R. Ambedkar
+Baiju Nana,2,accepted,correct name,Bayaji (Baiju Nana)
+Bengal,2,review,not a person name,
+Bethany Hamilton,2,accepted,correct name,Bethany Hamilton
+Bharata,2,accepted,not a person name,
+Buddha Vihar,2,accepted,not a person name,
+Chitrabani,2,review,not a person name,
+Chivaraku Migiledi,2,review,not a person name,
+Colonel Sanders,2,accepted,correct name,Harland David Sanders (Colonel Sanders)
+Dalit,2,accepted,not a person name,
+Day,2,review,not a person name,
+Dorjee,2,accepted,partial/truncated name,Yeshe Dorjee Thongchi
+Dr. K,2,accepted,partial/truncated name,
+Dr. Martin,2,accepted,correct name,Dr Martin
+Gandhi,2,accepted,correct name,Mahatma Gandhi
+God,2,review,not a person name,
+Govind,2,accepted,partial/truncated name,Waman Govind Hoval
+Henry Slater,2,accepted,correct name,Henry Slater
+Himalayas,2,review,not a person name,
+Jaya,2,accepted,not a person name,
+Kadam,2,accepted,correct name,Kadam
+Kasturi,2,accepted,partial/truncated name,Kasturi Rangan
+Khalil Gibran,2,accepted,correct name,Khalil Gibran
+Krishna,2,accepted,correct name,Krishna
+Krishna Dist,2,review,not a person name,
+Lakshmana,2,accepted,partial/truncated name,
+Lakshmana Sastry,2,accepted,correct name,Pakshi Lakshmana Sastry
+Lizzie,2,accepted,correct name,Elizabeth Jordan (Lizzie)
+M. Yadaiah,2,review,correct name,M. Yadaiah
+Mahatma Gandhi,2,accepted,correct name,Mahatma Gandhi
+Marguerite Siek,2,accepted,correct name,Marguerite Siek
+Martin Luther,2,accepted,partial/truncated name,Martin Luther King Jr.
+Mosque Street,2,review,not a person name,
+Mr. Nana,2,accepted,correct name,Sunday Nana
+Mr. Sunday Nana,2,accepted,correct name,Sunday Nana
+Mrs. Murthy,2,accepted,correct name,Sarada
+Napoleon Hill,2,accepted,correct name,Napoleon Hill
+Paandavas,2,review,not a person name,
+Padma Vibhushan,2,accepted,not a person name,
+Prasad,2,accepted,correct name,Prasad
+Ramesh,2,accepted,correct name,Ramesh
+Ranga Reddy,2,accepted,not a person name,
+Samsuddin,2,review,correct name,Samsuddin
+Sasirekha,2,review,correct name,Sasirekha
+Sindhu,2,accepted,correct name,Sindhu
+Sriram,2,accepted,correct name,Sriram
+Subramania Iyer,2,accepted,correct name,Sivasubramania Iyer
+Sujatha,2,accepted,correct name,Sujatha
+Sunderlal Bahuguna,2,accepted,correct name,Sunderlal Bahuguna
+Theo,2,accepted,correct name,Theo Van Gogh
+William Stanley Houghton,2,accepted,correct name,William Stanley Houghton
+Xavier,2,accepted,not a person name,
+Abel Merry,1,accepted,partial/truncated name,Abel Merryweather
+Abel Merryweather,1,accepted,correct name,Abel Merryweather
+Abul,1,accepted,correct name,A.P.J. Abdul Kalam (Abul)
+Agantuk,1,review,not a person name,
+Agnihotri,1,accepted,correct name,Rama Kant Agnihotri
+Akber,1,review,correct name,Akbar
+Albert Einstein,1,accepted,correct name,Albert Einstein
+Allu Ramalingaiah,1,accepted,correct name,Allu Ramalingaiah
+Ambedkar,1,accepted,correct name,B.R. Ambedkar
+Amita Baviskar,1,accepted,correct name,Amita Baviskar
+Amitabh Bacchan,1,accepted,correct name,Amitabh Bachchan
+Anand,1,accepted,correct name,Anand
+Anirudh,1,accepted,correct name,Anirudh
+Ardhang,1,review,not a person name,
+Ashiamma,1,review,correct name,Ashiamma
+Ashok,1,accepted,correct name,Ashok
+Aunt Elizabeth,1,review,correct name,Elizabeth Jordan (Lizzie)
+Aunt Jane,1,review,correct name,Aunt Jane
+Avinash,1,accepted,correct name,Avinash
+Babasaheb Amebedkar,1,accepted,correct name,B.R. Ambedkar
+Beethoven,1,accepted,correct name,Ludwig van Beethoven
+Ben Jordan,1,accepted,correct name,Ben Jordan
+Bhajan,1,accepted,not a person name,
+Bhalo,1,review,not a person name,
+Bharata Ratna,1,accepted,not a person name,
+Bharath Ratna,1,accepted,not a person name,
+Bhujaba Patil,1,accepted,correct name,Bhujaba Patil
+Booker,1,accepted,not a person name,
+Bose,1,accepted,correct name,Bose
+Burgampahad,1,review,not a person name,
+Calcutta,1,review,not a person name,
+Caste,1,review,not a person name,
+Cedric,1,accepted,partial/truncated name,Cedric Mount
+Chamundi,1,review,not a person name,
+Chatterjee,1,accepted,correct name,Saratchandra Chatterjee
+Convey,1,accepted,not a person name,
+D. K. Aruna,1,accepted,correct name,D.K. Aruna
+Dasari Narayana Rao,1,accepted,correct name,Dasari Narayana Rao
+Dattaram Vadar,1,accepted,correct name,Dattaram Vadar
+David Sanders,1,accepted,partial/truncated name,Harland David Sanders (Colonel Sanders)
+Devadas,1,review,correct name,Devadas
+Devadasu,1,review,not a person name,
+Dhanaraju,1,review,correct name,Dhanaraju
+Diplomas,1,review,not a person name,
+Dollar Sose,1,review,not a person name,
+Dorjee Thongchi,1,accepted,correct name,Yeshe Dorjee Thongchi
+Dr. Amrit Lal Khanna,1,accepted,correct name,Amrit Lal Khanna
+Dr. Avul Pakir Jainulabdeen Abdul,1,accepted,partial/truncated name,A.P.J. Abdul Kalam (Abul)
+Dr. B,1,accepted,partial/truncated name,
+Dr. B. Syama,1,accepted,partial/truncated name,B. Syama Sundari
+Dr. Brahm,1,accepted,partial/truncated name,Brahm Prakash
+Dr. D. Kanaka Durga,1,accepted,correct name,D. Kanaka Durga
+Dr. G,1,accepted,partial/truncated name,
+Dr. Nannuru Upender Reddy,1,accepted,correct name,Nannuru Upender Reddy
+Dr. Rama Kant Agnihotri,1,accepted,correct name,Rama Kant Agnihotri
+Dr. Sudarshan,1,accepted,correct name,Sudarshan
+Dr. T,1,accepted,partial/truncated name,
+Dr. Vikram,1,accepted,partial/truncated name,Vikram Sarabhai
+Duddeda,1,review,not a person name,
+Duryodhana,1,review,correct name,Duryodhana
+Ellora,1,review,not a person name,
+Ford,1,accepted,partial/truncated name,
+Fr. Gaston,1,accepted,partial/truncated name,Gaston Roberge
+Gandhi Nagar,1,accepted,not a person name,
+Gandhiji,1,review,correct name,Mahatma Gandhi
+Ganesh,1,accepted,correct name,Ganesh
+Ganiraju,1,review,correct name,Ganiraju
+Gaston Roberge,1,accepted,correct name,Gaston Roberge
+Gatz,1,review,not a person name,
+Geetha,1,accepted,correct name,Geetha
+Ghanshyam,1,accepted,partial/truncated name,Ghanshyam Shah
+Ghantasala,1,accepted,correct name,Ghantasala
+Gilpam,1,review,not a person name,
+Girija,1,accepted,partial/truncated name,M. Girija Shankar
+Gita,1,accepted,not a person name,
+Goa,1,review,not a person name,
+Gokhale,1,accepted,correct name,Gokhale
+Golden Jubilee,1,accepted,not a person name,
+Gopal Reddy,1,accepted,correct name,G. Gopal Reddy
+Gopi,1,accepted,correct name,Gopi
+Guinness,1,accepted,not a person name,
+Gummadi,1,accepted,correct name,Gummadi
+Hafiz,1,review,correct name,Hafiz
+Harish,1,accepted,correct name,Harish
+Harsh Mander,1,accepted,correct name,Harsh Mander
+Hendricks,1,accepted,correct name,Arthur Lemière Hendriks (Micky Hendriks)
+Houghton,1,accepted,correct name,William Stanley Houghton
+Humour,1,review,not a person name,
+I'm Sarada,1,accepted,partial/truncated name,Sarada
+I. Adverbial Clauses,1,review,not a person name,
+I. Non-finite,1,review,not a person name,
+I. Read,1,accepted,not a person name,
+Imtiaz Dharker,1,accepted,correct name,Imtiaz Dharker
+Indira,1,accepted,correct name,K. Indira
+Isobel Hawking,1,accepted,correct name,Isobel Hawking
+Iyer,1,accepted,partial/truncated name,
+JILL'S Villa,1,review,not a person name,
+Janaki Ramaiah,1,accepted,correct name,K. Janaki Ramaiah
+Jani Reddy,1,accepted,correct name,P. Jani Reddy
+Jawan,1,accepted,not a person name,
+Jija Buwa,1,review,correct name,Jija Buwa
+John's Enclave,1,accepted,not a person name,
+Kadegaonkar Buwa,1,review,correct name,Kadegaonkar Buwa
+Kalaimamani,1,review,not a person name,
+Kalpana Chawla,1,accepted,correct name,Kalpana Chawla
+Kamala,1,accepted,correct name,Kamala
+Kamala Das,1,accepted,correct name,Kamala Das
+Kasturi Rangan,1,accepted,correct name,Kasturi Rangan
+Kauravas,1,review,not a person name,
+Khera,1,accepted,correct name,Shiv Khera
+Kiran Bedi,1,accepted,correct name,Kiran Bedi
+Kumar,1,accepted,correct name,Kumar
+Kumara,1,accepted,partial/truncated name,Lakshmana Kumara
+Lee De,1,accepted,partial/truncated name,Lee De Forest
+Leela,1,accepted,correct name,Leela
+Ludwig,1,accepted,partial/truncated name,Ludwig van Beethoven
+M. Raju,1,accepted,correct name,M. Raju
+Madras,1,review,not a person name,
+Mahabharatha,1,review,not a person name,
+Mahanati,1,review,not a person name,
+Mahatma Jyotiba Phule,1,review,correct name,Mahatma Jyotiba Phule
+Manikda,1,review,correct name,Satyajit Ray (Manikda)
+Manohar,1,accepted,not a person name,
+Marcus Bartley,1,accepted,correct name,Marcus Bartley
+Maredumilli,1,review,not a person name,
+Martin Luther King,1,accepted,correct name,Martin Luther King Jr.
+Mary Kom,1,accepted,correct name,Mary Kom
+Mayabazaar,1,review,not a person name,
+Medak Dist,1,review,not a person name,
+Meena Kumari,1,accepted,correct name,Meena Kumari
+Meenakshi,1,accepted,correct name,Meenakshi
+Mickey,1,accepted,partial/truncated name,Mickey Mouse
+Mickey Mouse,1,review,correct name,Mickey Mouse
+Micky Hendriks,1,accepted,correct name,Arthur Lemière Hendriks (Micky Hendriks)
+Mircea Eliade,1,accepted,correct name,Mircea Eliade
+Missa Solemnis,1,review,not a person name,
+Missamma,1,review,not a person name,
+Moghuls,1,review,not a person name,
+Mohan,1,accepted,correct name,Mohan
+Mohan Babu,1,accepted,correct name,T.T.P. Mohan Babu
+Monpa,1,review,not a person name,
+Moses Bridge,1,accepted,correct name,Moses Bridge
+Mother Teresa,1,review,correct name,Mother Teresa
+Mouna Ounth Mukhar,1,review,not a person name,
+Mr. Beera Srinivas,1,accepted,correct name,Beera Srinivas
+Mr. K,1,accepted,partial/truncated name,
+Mr. K. Babu,1,accepted,correct name,K. Babu
+Mr. K. Srinivas,1,accepted,correct name,K. Srinivas
+Mr. Kannaiah Dara,1,accepted,correct name,Kannaiah Dara
+Mr. Merryweather,1,accepted,correct name,Abel Merryweather
+Mr. Owner,1,accepted,not a person name,
+Mr. T,1,accepted,partial/truncated name,
+Mr. Tattersall,1,accepted,correct name,Mr Tattersall
+Mr. Tenant,1,accepted,not a person name,
+Mrs M Suhasini,1,accepted,correct name,Mrs M. Suhasini
+Mrs Murthy,1,accepted,correct name,Sarada
+Mrs. Amelia Slater,1,accepted,correct name,Amelia Slater
+Mrs. Elizabeth Jordan,1,accepted,correct name,Elizabeth Jordan (Lizzie)
+Ms. Charu Sinha,1,accepted,correct name,Charu Sinha
+Ms. Imtiaz Dharker,1,accepted,correct name,Imtiaz Dharker
+Nagendra Rao,1,accepted,correct name,Pingali Nagendra Rao
+Nageswara Rao,1,accepted,correct name,P. Nageswara Rao
+Nagireddy,1,review,correct name,Nagireddy
+Nandamuri,1,accepted,partial/truncated name,Nandamuri Taraka Ramarao (NTR)
+Narayana,1,accepted,partial/truncated name,
+Narayanaguda,1,review,not a person name,
+Nataraja,1,accepted,not a person name,
+Natasha,1,accepted,correct name,Natasha Revenko
+Natasha Revenko,1,accepted,correct name,Natasha Revenko
+Nath,1,accepted,correct name,D.P. Nath
+Norman Vincent,1,accepted,partial/truncated name,Norman Vincent Peale
+Nutan Prasad,1,accepted,correct name,Nutan Prasad
+Observing Henry,1,review,partial/truncated name,Henry Slater
+Padma Bhushan,1,accepted,not a person name,
+Parasu Buwa,1,review,correct name,Parasu Buwa
+Parasu Martanda,1,review,correct name,Parasu Martanda
+Pater Panchali,1,review,not a person name,
+Pauls,1,accepted,not a person name,
+Philip's Church,1,accepted,not a person name,
+Phrasal Verbs,1,review,not a person name,
+Pingali,1,accepted,partial/truncated name,Pingali Nagendra Rao
+Pinto,1,accepted,not a person name,
+Pius,1,accepted,correct name,Pius XI
+Plato,1,review,correct name,Plato
+Pothuraju,1,review,correct name,Pothuraju
+Pradyumna Kumar,1,accepted,correct name,Ch. Pradyumna Kumar
+Prakasam District,1,review,not a person name,
+Prakash,1,accepted,correct name,Brahm Prakash
+Pramila,1,accepted,correct name,Pramila
+Prem,1,accepted,correct name,Prem
+Priyanka,1,accepted,correct name,Priyanka
+Prof. Satish Dhawan,1,accepted,correct name,Satish Dhawan
+Professor Paul,1,accepted,correct name,Professor Paul
+Raghu,1,accepted,correct name,Raghu
+Rahman,1,accepted,correct name,A.R. Rahman
+Rahul,1,accepted,correct name,Rahul
+Raja Ram Mohan,1,accepted,partial/truncated name,Raja Ram Mohan Roy
+Rajanikantha Kumari,1,accepted,correct name,G. Rajanikantha Kumari
+Rama,1,accepted,correct name,Rama
+Rama Tirtha,1,accepted,not a person name,
+Ramana Reddy,1,accepted,correct name,Ramana Reddy
+Ramanadha,1,accepted,partial/truncated name,Ramanadha Sastry
+Ramanadha Shastry,1,review,correct name,Ramanadha Sastry
+Ramanareddy,1,review,correct name,Ramana Reddy
+Ramesh Rao,1,accepted,correct name,K. Ramesh Rao
+Ramya,1,accepted,correct name,Ramya
+Rao,1,accepted,partial/truncated name,
+Ravi Shankar,1,accepted,correct name,Ravi Shankar
+Ravindra Bharathi,1,accepted,not a person name,
+Ray- Ganashatru,1,review,partial/truncated name,Satyajit Ray (Manikda)
+Rishi,1,accepted,correct name,Rishi
+Roy,1,accepted,partial/truncated name,Raja Ram Mohan Roy
+Sarabhai,1,accepted,correct name,Vikram Sarabhai
+Saratchandra,1,accepted,partial/truncated name,Saratchandra Chatterjee
+Sarbajaya,1,review,correct name,Sarbajaya
+Sasirekha Parinayam,1,review,not a person name,
+Satish Deshpande,1,accepted,correct name,Satish Deshpande
+Satyajit,1,accepted,correct name,Satyajit Ray (Manikda)
+Satyanarayana Murthy,1,accepted,correct name,Satyanarayana Murthy
+Shakuntala,1,review,correct name,Shakuntala
+Shiva,1,accepted,correct name,Shiva
+Sir Herbert Risely,1,accepted,correct name,Herbert Risley
+Sit,1,review,not a person name,
+Sita,1,accepted,correct name,Sita
+Sita Rama,1,accepted,not a person name,
+Siva Rao,1,accepted,correct name,Siva Rao
+Sivasubramania,1,accepted,partial/truncated name,Sivasubramania Iyer
+Socrates,1,review,correct name,Socrates
+Sonam,1,accepted,not a person name,
+Sreenivasa Rao,1,accepted,correct name,G. Sreenivasa Rao
+Sri B. Sudhakar,1,accepted,correct name,B. Sudhakar
+Sri P.,1,accepted,partial/truncated name,
+Sri V. Johnson,1,accepted,correct name,V. Johnson
+Sridhar,1,accepted,correct name,Sridhar
+Srikanth,1,accepted,correct name,Srikanth
+Srinivas,1,accepted,partial/truncated name,
+Srinivas Reddy,1,accepted,correct name,K. Srinivas Reddy
+Subba Rao,1,accepted,partial/truncated name,Pydimarri Venkata Subba Rao
+Sudha,1,accepted,partial/truncated name,
+Sudha Chandran,1,accepted,correct name,Sudha Chandran
+Sujatha Bhatt,1,accepted,correct name,Sujatha Bhatt
+Sukhadeo Thorat,1,accepted,correct name,Sukhadeo Thorat
+Sundara Rao,1,accepted,correct name,Sundara Rao
+Sunil,1,accepted,correct name,Sunil
+Supplementary Reader,1,review,not a person name,
+Suresh,1,accepted,correct name,Suresh
+Surfer,1,review,not a person name,
+Suryakantam,1,review,correct name,Suryakantam
+Suseela,1,accepted,correct name,Suseela
+Tara Patel,1,accepted,correct name,Tara Patel
+Thungathurthy,1,review,not a person name,
+Varasdar,1,review,not a person name,
+Vasantha Kumari,1,accepted,correct name,M.L. Vasantha Kumari
+Venkata Rama Rayudu,1,accepted,correct name,K. Venkata Rama Rayudu
+Verb,1,review,not a person name,
+Vijayalaxmi,1,accepted,correct name,Vadrewu Vijayalaxmi
+Vijayasama,1,review,correct name,Vijayasama
+Vincent A. Smith,1,accepted,correct name,Vincent A. Smith
+Vincent Van,1,accepted,partial/truncated name,Vincent Van Gogh
+Vithoba,1,review,correct name,Vithoba of Wadgaon
+Vorobyov Village,1,review,not a person name,
+Wadgaon,1,review,not a person name,
+Wangari,1,accepted,correct name,Wangari Maathai
+Workbook,1,review,not a person name,
+Yadava,1,review,not a person name,
+You've Jill,1,review,partial/truncated name,Jill
+Bhagavath Gita,0,other_run,not a person name,
+Nagavara Ramarao Narayana Murthy,0,other_run,correct name,N.R. Narayana Murthy
+Karmaveer Bhaurao Patil,0,other_run,correct name,Bhaurao Patil
+,,,MISSED by extractor,Navuluri Peraiah
+,,,MISSED by extractor,Y.G.K. Murthy
+,,,MISSED by extractor,K.N. Anandan
+,,,MISSED by extractor,T.V. Ramakishan
+,,,MISSED by extractor,M.D. Hatknagalekar
+,,,MISSED by extractor,P. Satyavathi
+,,,MISSED by extractor,Gabriel Okara
+,,,MISSED by extractor,Jallaluddin
+,,,MISSED by extractor,Sivaprakasan
+,,,MISSED by extractor,K.V. Reddy
+,,,MISSED by extractor,Chakrapani
+,,,MISSED by extractor,S.V. Ranga Rao
+,,,MISSED by extractor,ANR
+,,,MISSED by extractor,Madhavapeddi
+,,,MISSED by extractor,Pasumarthy
+,,,MISSED by extractor,Pitambaram
+,,,MISSED by extractor,Relangi
+,,,MISSED by extractor,Padmanabham
+,,,MISSED by extractor,Rao Gopal Rao
+,,,MISSED by extractor,Rajababu
+,,,MISSED by extractor,Brahmanandam
+,,,MISSED by extractor,Ali
+,,,MISSED by extractor,L.V. Prasad
+,,,MISSED by extractor,Walt Disney
+,,,MISSED by extractor,Steve Appel
+,,,MISSED by extractor,Henry Ford II
+,,,MISSED by extractor,Lee Iacocca
+,,,MISSED by extractor,Wright Brothers
+,,,MISSED by extractor,Tom Watson Sr.
+,,,MISSED by extractor,Pope Paul VI
+,,,MISSED by extractor,Stephen Hawking
+,,,MISSED by extractor,Frank Hawking
+,,,MISSED by extractor,Jane Wilde
+,,,MISSED by extractor,Xenophon
+,,,MISSED by extractor,Aristophanes
+,,,MISSED by extractor,Pissarro
+,,,MISSED by extractor,Bhaurao Patil
+,,,MISSED by extractor,Marie Curie
+,,,MISSED by extractor,Alexander
+,,,MISSED by extractor,Birbal
+,,,MISSED by extractor,Sumathi
+,,,MISSED by extractor,Rashmitha
+,,,MISSED by extractor,Ashwitha
+,,,MISSED by extractor,Sumanthamma
+,,,MISSED by extractor,Vithoba Ghayakute
+,,,MISSED by extractor,Frederick
+,,,MISSED by extractor,Albert
+,,,MISSED by extractor,Isaac
+,,,MISSED by extractor,Subhadra
+,,,MISSED by extractor,Parvathi
+,,,MISSED by extractor,Mary
+,,,MISSED by extractor,Apu
+,,,MISSED by extractor,Harihar
+,,,MISSED by extractor,Prudhvi
+,,,MISSED by extractor,Ramu
+,,,MISSED by extractor,Sarath
+,,,MISSED by extractor,Sharath
+,,,MISSED by extractor,Sravani
+,,,MISSED by extractor,Srinu

@@ -51,6 +51,7 @@ _PERSON_CONTEXT_CUES = frozenset({
 # design principle 3 and generate_training_data.py's
 # CHAT_HEADER_NEGATIVE_PHRASES).
 from src.validation.validators.organization_validator import ORG_KEYWORDS as _ORG_KEYWORDS
+from src.detection.regex_detector import PERSON_MARKER_PATTERNS
 
 _NONPERSON_CONTEXT_CUES = _ORG_KEYWORDS | frozenset({
     "debt", "embedded", "overlays", "devices", "lockscreen", "complaint",
@@ -106,7 +107,7 @@ def extract_features(
     # checks the dictionary-driven list, same pattern as has_honorific,
     # so expanding titles.txt has real effect on the ML feature instead
     # of being inert data.
-    has_title = any(d.metadata.get("pattern") == "titled" for d in detections) or any(
+    has_title = any(d.metadata.get("pattern") in PERSON_MARKER_PATTERNS for d in detections) or any(
         knowledge_base.is_title(t.rstrip(".")) for t in tokens
     )
     has_honorific = any(

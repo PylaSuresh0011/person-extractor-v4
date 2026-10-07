@@ -1,0 +1,17 @@
+{
+ "benchmark": {
+  "accepted_P": 0.9727,
+  "accepted_R": 0.9071,
+  "accepted_FP": 34,
+  "all_R": 0.9124,
+  "all_FP": 60
+ },
+ "dump005_accepted_FP": 0,
+ "benchmark_unseen": {
+  "accepted_P": 1.0,
+  "accepted_R": 1.0,
+  "accepted_FP": 0,
+  "all_R": 1.0,
+  "all_FP": 0
+ }
+}

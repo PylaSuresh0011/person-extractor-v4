@@ -22,6 +22,7 @@ import unicodedata
 
 from src.core.models import CandidateResult, ValidationResult
 from src.knowledge.knowledge_base import KnowledgeBase
+from src.detection.regex_detector import PERSON_MARKER_PATTERNS
 from src.validation.base_validator import BaseValidator
 
 
@@ -50,7 +51,11 @@ class LanguageValidator(BaseValidator):
 
         tokens = text.split()
         marker_tokens = [t for t in tokens if t.lower().rstrip(".") in knowledge_base.non_english_markers]
-        if marker_tokens:
+        # A title or a person cue says it is a name (round 3, 2026-10-01):
+        # "Ho Chi Minh (who spent time in France" - "Ho" is also a Telugu word.
+        marked_person = any(d.metadata.get("pattern") in PERSON_MARKER_PATTERNS
+                            for d in candidate.candidate.source_detections)
+        if marker_tokens and not marked_person:
             return ValidationResult(
                 self.name, passed=False, severity="hard",
                 message=f"Contains transliterated non-English marker word(s): {', '.join(marker_tokens)}",

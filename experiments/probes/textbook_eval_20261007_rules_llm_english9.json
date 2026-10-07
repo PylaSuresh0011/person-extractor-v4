@@ -1,0 +1,90 @@
+{
+ "mode": "LLM reviewer",
+ "books": {
+  "english9": {
+   "accepted": {
+    "entries": 154,
+    "correct": 145,
+    "partial": 4,
+    "not_name": 5,
+    "unlabelled": 0,
+    "precision": 0.9416,
+    "recall": 0.9268,
+    "f1": 0.9341,
+    "people_found": 114,
+    "people_total": 123,
+    "duplicates": 31,
+    "review_entries": 0,
+    "review_junk": 0.0,
+    "top_non_names": [
+     "Khala (3)",
+     "Jessy (2)",
+     "A.C. Benson (1)",
+     "Sammy (1)",
+     "Thomas Cook (1)"
+    ],
+    "unlabelled_names": [],
+    "truncated": [
+     "B. Antony",
+     "Canon de Courcelles",
+     "John",
+     "Krishnaswami Iyer Narayanaswami"
+    ],
+    "missed_people": [
+     "Bhagmati",
+     "Chief Lutuli",
+     "Chief Seattle",
+     "Pragathi",
+     "Rajam",
+     "Ramalinga",
+     "Sindu",
+     "Tamim Ansary",
+     "Yamuna"
+    ]
+   },
+   "accepted_plus_review": {
+    "entries": 157,
+    "correct": 147,
+    "partial": 5,
+    "not_name": 5,
+    "unlabelled": 0,
+    "precision": 0.9363,
+    "recall": 0.9268,
+    "f1": 0.9315,
+    "people_found": 114,
+    "people_total": 123,
+    "duplicates": 33,
+    "review_entries": 3,
+    "review_junk": 0.3333,
+    "top_non_names": [
+     "Khala (3)",
+     "Jessy (2)",
+     "A.C. Benson (1)",
+     "Sammy (1)",
+     "Thomas Cook (1)"
+    ],
+    "unlabelled_names": [],
+    "truncated": [
+     "B. Antony",
+     "Canon de Courcelles",
+     "John",
+     "Krishnaswami Iyer Narayanaswami",
+     "Stone"
+    ],
+    "missed_people": [
+     "Bhagmati",
+     "Chief Lutuli",
+     "Chief Seattle",
+     "Pragathi",
+     "Rajam",
+     "Ramalinga",
+     "Sindu",
+     "Tamim Ansary",
+     "Yamuna"
+    ]
+   },
+   "seconds": 145.5
+  }
+ },
+ "macro": null
+}

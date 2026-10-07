@@ -44,6 +44,8 @@ class LightGBMClassifier(BaseClassifier):
     def __init__(self) -> None:
         self._booster = None
         self.training_metrics: dict = {}
+        # "lightgbm" or "text_model_reader" once a model is loaded.
+        self.backend: str | None = None
 
     def train(self, X: list[list[float]], y: list[int], groups: list[str] | None = None) -> dict:
         import numpy as np
@@ -221,13 +223,28 @@ class LightGBMClassifier(BaseClassifier):
         logger.info("Model saved to %s (metrics: %s)", path, metrics_path)
 
     def load(self, path: str | Path) -> None:
-        import lightgbm as lgb
-
         path = Path(path)
         if not path.exists():
             raise FileNotFoundError(f"Model file not found: {path}")
 
-        self._booster = lgb.Booster(model_file=str(path))
+        try:
+            import lightgbm as lgb
+        except (ImportError, OSError) as exc:
+            # OSError: the native library exists but the OS refuses to load
+            # it (WinError 4551, Windows Smart App Control, 2026-10-06).
+            # Without this the pipeline silently scored rules-only.
+            from src.classification.lightgbm_text_model import TextModelBooster
+
+            self._booster = TextModelBooster.from_file(path)
+            self.backend = "text_model_reader"
+            logger.warning(
+                "LightGBM could not be loaded (%s). Scoring with the built-in model reader "
+                "instead - same model file, prediction only. Training and retraining still need LightGBM.",
+                exc,
+            )
+        else:
+            self._booster = lgb.Booster(model_file=str(path))
+            self.backend = "lightgbm"
 
         metrics_path = path.with_suffix(".metrics.json")
         if metrics_path.exists():

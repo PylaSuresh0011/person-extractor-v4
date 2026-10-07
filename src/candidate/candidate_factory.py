@@ -99,6 +99,20 @@ def _select_canonical_span(group: list[Detection], knowledge_base: KnowledgeBase
     best = ranked[0]
 
     best_pattern = best.metadata.get("pattern")
+    # A dictionary window that is only part of the name spaCy found (2026-10-01,
+    # a textbook): "Norman Vincent" (both list first names) inside spaCy's
+    # "Norman Vincent Peale", "David Sanders" inside "Harland David Sanders".
+    # The wider span wins when its extra words (at most two) read as names -
+    # not ordinary words, stopwords, places or organizations - so "Andre Silva
+    # Hi" (a chat message run on) still stays "Andre Silva".
+    if best_pattern == "dictionary" and knowledge_base is not None:
+        for d in group:
+            if (d.metadata.get("pattern") != "spacy_ner" or not (d.start <= best.start and d.end >= best.end)
+                    or d.end - d.start <= best.end - best.start or len(d.text.split()) > 4):
+                continue
+            extra = d.text[:best.start - d.start].split() + d.text[best.end - d.start:].split()
+            if 0 < len(extra) <= 2 and all(_is_plausible_name_token(t, knowledge_base) for t in extra):
+                return d
     if best_pattern in ("spacy_ner", "dictionary_single_token") and len(best.text.split()) == 1:
         for d in group:
             if d.metadata.get("pattern") != "bare":
@@ -129,7 +143,61 @@ def _select_canonical_span(group: list[Detection], knowledge_base: KnowledgeBase
             other = d.text.split()[-1] if d.start == best.start else d.text.split()[0]
             if knowledge_base is not None and _is_plausible_name_token(other, knowledge_base):
                 return d
+    if best_pattern in ("dictionary", "dictionary_single_token") and knowledge_base is not None:
+        wider = _name_shaped_span_around(best, group, knowledge_base)
+        if wider is not None:
+            return wider
     return best
+
+
+_PLAIN_NAME_WORD_RE = re.compile(rf"^[{LATIN_UPPER}][{LATIN_LETTERS}]+$")
+_INITIALS_TOKEN_RE = re.compile(rf"^(?:[{LATIN_UPPER}]\.){{1,4}}$")
+
+
+def _name_shaped_span_around(best: Detection, group: list[Detection], knowledge_base: KnowledgeBase) -> Detection | None:
+    """The capitalised run on the page (a bare or person-cue regex span, at
+    most four words) around a dictionary hit, when every word the lists did
+    not confirm still reads as a name word - an unseen surname or house name,
+    or initials (2026-10-07).
+
+    The name lists know part of a long name far more often than all of it,
+    and the part they knew became the whole candidate: on three textbooks
+    "Pydimarri Venkata Subba Rao" came out as "Venkata", "Kurra Suresh Babu"
+    as "Suresh Babu", "Vaikom Muhammad Basheer" as "Muhammad Basheer",
+    "Yeshe Dorjee Thongchi" as "Dorjee", "Nandamuri Taraka Ramarao" as
+    "Nandamuri" - each accepted, as a cut-off name. The two-word and
+    middle-initial widenings above were the same repair for shorter names.
+
+    A sentence word or a contraction run on after a name ("Andre Silva Hi",
+    "Marcus Webb I'll") is no name word (_is_plausible_name_token; letters
+    only), so those stay as they are. A chat label glued on that no list
+    knows ("Kk Marcus Webb") does widen here, and refine_boundaries() trims
+    it back wherever the document shows the shorter name on its own - the
+    same document-relative check that function has always made.
+
+    The dictionary word itself must not be a calendar word, a language or
+    region name, a place or an organisation: alone those are refused later
+    ("Jan", "Arab"), and inside a longer span that refusal would not apply
+    ("Bharatiya Jan Sangh")."""
+    hit_words = [w.rstrip(".,;:") for w in _strip_possessive(best.text)[0].split()]
+    if any(knowledge_base.is_calendar_word(w) or knowledge_base.is_language_or_region_name(w)
+           or knowledge_base.is_location(w) or knowledge_base.is_organization(w) for w in hit_words):
+        return None
+    chosen = None
+    for d in group:
+        if d.metadata.get("pattern") not in ("bare", "person_cue"):
+            continue
+        if not (d.start <= best.start and d.end >= best.end) or d.end - d.start <= best.end - best.start:
+            continue
+        extra = d.text[:best.start - d.start].split() + d.text[best.end - d.start:].split()
+        if not extra or len(d.text.split()) > 4:
+            continue
+        if not all(_INITIALS_TOKEN_RE.match(t) or (_PLAIN_NAME_WORD_RE.match(t.rstrip(".,;:"))
+                                                   and _is_plausible_name_token(t, knowledge_base)) for t in extra):
+            continue
+        if chosen is None or d.end - d.start > chosen.end - chosen.start:
+            chosen = d
+    return chosen
 
 
 _NAME_WORD_RE = re.compile(rf"^[{LATIN_UPPER}][{LATIN_LETTERS}'\-]+$")

@@ -31,6 +31,38 @@ def test_combine_sums_and_accepted_wins(tmp_path):
         ("Nadia", 4, "accepted", ["one.txt", "two.txt"]),
         ("Ravi Kumar", 2, "accepted", ["one.txt"]),
     ]
-    csv_path = gui.save(rows, [Path("one.txt"), Path("two.txt")], [], out_dir=tmp_path)
-    assert csv_path.exists() and csv_path.with_suffix(".txt").exists()
-    assert "Nadia" in csv_path.with_suffix(".txt").read_text(encoding="utf-8")
+
+
+def test_every_run_is_stored_with_its_times_and_added_to_the_history(tmp_path):
+    import csv
+    from datetime import datetime
+    rows = [{"display": "Nadia", "occurrences": 4, "decision": "accepted", "files": ["one.txt"]}]
+    file_rows = [{"path": "one.txt", "status": "ok", "accepted": 1, "review": 0, "seconds": 2.5},
+                 {"path": "bad.pdf", "status": "failed: unreadable", "accepted": 0, "review": 0, "seconds": 0.1}]
+    start, end = datetime(2026, 10, 1, 9, 58, 0), datetime(2026, 10, 1, 10, 1, 7)
+    first = gui.save_run(rows, file_rows, start, end, "full", "on (test)", ["C:/case"], out_dir=tmp_path)
+    second = gui.save_run(rows, file_rows, start, end, "fast", "off", ["C:/case"], out_dir=tmp_path)
+    assert first.name == "2026-10-01_09-58-00" and second.name == "2026-10-01_09-58-00_2"  # never overwritten
+    for name in ("results.csv", "results.txt", "files.csv"):
+        assert (first / name).exists()
+    report = (first / "results.txt").read_text(encoding="utf-8")
+    for expected in ("Date        : 2026-10-01", "Started     : 09:58:00", "Finished    : 10:01:07",
+                     "Time taken  : 3m 07s", "Files       : 2 (1 failed)", "Nadia"):
+        assert expected in report, expected
+    # Run data and extraction data together, per run and across all runs.
+    per_run = list(csv.DictReader(open(first / "results.csv", encoding="utf-8")))
+    assert per_run[0]["name"] == "Nadia" and per_run[0]["start_time"] == "09:58:00" and per_run[0]["time_taken"] == "3m 07s"
+    all_runs = list(csv.DictReader(open(tmp_path / gui.ALL_RUNS_FILE, encoding="utf-8")))
+    assert [(r["run_folder"], r["name"], r["mode"]) for r in all_runs] == [
+        ("2026-10-01_09-58-00", "Nadia", "full"), ("2026-10-01_09-58-00_2", "Nadia", "fast")]
+    empty = gui.save_run([], file_rows, start, end, "full", "on", ["C:/x"], out_dir=tmp_path)
+    last = list(csv.DictReader(open(tmp_path / gui.ALL_RUNS_FILE, encoding="utf-8")))[-1]
+    assert last["run_folder"] == empty.name and last["name"] == ""  # a run with no names still appears
+    history = list(csv.DictReader(open(tmp_path / "run_history.csv", encoding="utf-8")))
+    assert [h["mode"] for h in history] == ["full", "fast", "full"]
+    assert history[0]["start_time"] == "09:58:00" and history[0]["end_time"] == "10:01:07"
+    assert history[0]["time_taken_seconds"] == "187.0" and history[0]["files_failed"] == "1"
+
+
+def test_format_duration():
+    assert [gui.format_duration(s) for s in (12.44, 187, 3725)] == ["12.4s", "3m 07s", "1h 02m 05s"]

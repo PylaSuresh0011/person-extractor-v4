@@ -1,0 +1,41 @@
+# Designations that end up glued after a name on credit pages and in
+# captions (added 2026-10-01, round 3, error brief v2 N9): "Dr. I. Thirumali
+# Senior Fellow", "Dr. Ramani Atkuri Medical Practitioner", "Ken Saro Wiwa
+# Peasant". A name span stops before them. Not "Junior"/"Jr" - a suffix.
+# Generic vocabulary.
+senior
+fellow
+medical
+practitioner
+lecturer
+professor
+director
+consultant
+editor
+teacher
+peasant
+farmer
+officer
+secretary
+principal
+headmaster
+headmistress
+advocate
+engineer
+researcher
+scholar
+author
+member
+chairman
+chairperson
+commissioner
+collector
+inspector
+coordinator
+convener
+reader
+associate
+assistant
+deputy
+retired
+retd

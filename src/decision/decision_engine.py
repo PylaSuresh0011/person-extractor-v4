@@ -56,6 +56,7 @@ from src.core.models import CandidateResult, Decision, DetectorName
 from src.knowledge.knowledge_base import KnowledgeBase
 from src.preprocessing.segmenter import count_occurrences
 from src.utils.logger import get_logger
+from src.detection.regex_detector import PERSON_MARKER_PATTERNS
 
 logger = get_logger("decision.decision_engine")
 
@@ -247,7 +248,8 @@ class DecisionEngine:
         has_single_token_dictionary_evidence = any(
             d.metadata.get("pattern") == "dictionary_single_token" for d in detections
         )
-        has_title_evidence = any(d.metadata.get("pattern") == "titled" for d in detections)
+        # A title, or a person cue (kinship, sign-off, speaker label) - see regex_detector.py
+        has_title_evidence = any(d.metadata.get("pattern") in PERSON_MARKER_PATTERNS for d in detections)
         # The first name of a multi-token person this same document already
         # ACCEPTED - see src/candidate/name_propagation.py.
         has_document_name_evidence = any(

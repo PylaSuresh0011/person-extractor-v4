@@ -68,6 +68,16 @@ def test_repetition_validator_rejects_repeated_tokens():
     assert _validate(RepetitionValidator(), "John John").passed is False
 
 
+def test_repetition_validator_allows_repeated_initials():
+    """Two equal initials are a normal name ("V. V. Subrahmanyam" in a
+    textbook interview was rejected as a repeat, 2026-10-07); a repeated
+    word beside them is still a repeat."""
+    assert _validate(RepetitionValidator(), "V. V. Subrahmanyam").passed is True
+    assert _validate(RepetitionValidator(), "J J Thomson").passed is True
+    assert _validate(RepetitionValidator(), "A. A. Milne Milne").passed is False
+    assert _validate(RepetitionValidator(), "Very Very Special").passed is False
+
+
 def test_initial_validator_rejects_all_initials():
     assert _validate(InitialValidator(), "J. R.").passed is False
 

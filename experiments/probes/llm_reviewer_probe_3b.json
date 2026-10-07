@@ -1,0 +1,116 @@
+{
+  "model": "llama3.2:3b",
+  "prompt_version": "v1",
+  "files": 6,
+  "names_judged": 201,
+  "seconds": 22.8,
+  "seconds_per_name": 0.114,
+  "name_level": {
+    "accepted_person": {
+      "count": 165,
+      "mean_p_yes": 0.842
+    },
+    "accepted_not_person": {
+      "count": 13,
+      "mean_p_yes": 0.756
+    },
+    "review_person": {
+      "count": 11,
+      "mean_p_yes": 0.916
+    },
+    "review_not_person": {
+      "count": 12,
+      "mean_p_yes": 0.72
+    }
+  },
+  "scenarios_mention_level": {
+    "baseline": {
+      "P": 0.9789,
+      "R": 0.9026,
+      "F1": 0.9392,
+      "TP": 1205,
+      "FP": 26,
+      "names": 178
+    },
+    "accepted_plus_review": {
+      "P": 0.94,
+      "R": 0.9625,
+      "F1": 0.9511,
+      "TP": 1285,
+      "FP": 82,
+      "names": 201
+    },
+    "cleanup@0.5": {
+      "P": 0.9868,
+      "R": 0.8966,
+      "F1": 0.9395,
+      "TP": 1197,
+      "FP": 16,
+      "names": 174
+    },
+    "promote@0.5": {
+      "P": 0.9533,
+      "R": 0.9625,
+      "F1": 0.9579,
+      "TP": 1285,
+      "FP": 63,
+      "names": 198
+    },
+    "both@0.5": {
+      "P": 0.9602,
+      "R": 0.9566,
+      "F1": 0.9584,
+      "TP": 1277,
+      "FP": 53,
+      "names": 194
+    },
+    "cleanup@0.7": {
+      "P": 0.9788,
+      "R": 0.9011,
+      "F1": 0.9383,
+      "TP": 1203,
+      "FP": 26,
+      "names": 177
+    },
+    "promote@0.7": {
+      "P": 0.9647,
+      "R": 0.9625,
+      "F1": 0.9636,
+      "TP": 1285,
+      "FP": 47,
+      "names": 197
+    },
+    "both@0.7": {
+      "P": 0.9647,
+      "R": 0.961,
+      "F1": 0.9628,
+      "TP": 1283,
+      "FP": 47,
+      "names": 196
+    },
+    "cleanup@0.9": {
+      "P": 0.9789,
+      "R": 0.9026,
+      "F1": 0.9392,
+      "TP": 1205,
+      "FP": 26,
+      "names": 178
+    },
+    "promote@0.9": {
+      "P": 0.9711,
+      "R": 0.9573,
+      "F1": 0.9642,
+      "TP": 1278,
+      "FP": 38,
+      "names": 190
+    },
+    "both@0.9": {
+      "P": 0.9711,
+      "R": 0.9573,
+      "F1": 0.9642,
+      "TP": 1278,
+      "FP": 38,
+      "names": 190
+    }
+  }
+}

@@ -17,6 +17,7 @@ ORG_KEYWORDS = frozenset({
     "company", "corporation", "corp", "ltd", "limited", "inc", "llp",
     "bank", "trust", "foundation",
     "council", "committee", "department", "ministry", "party",
+    "government",  # "T.S. Government" (2026-10-01, a textbook footer variant) - never part of a person name
     "union", "association", "society", "board", "authority", "agency",
     "bureau", "commission",
     "municipal", "municipality",

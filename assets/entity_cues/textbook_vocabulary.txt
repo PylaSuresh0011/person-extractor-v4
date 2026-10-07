@@ -1,0 +1,43 @@
+# Textbook and exercise vocabulary (added 2026-10-01, error brief P2): words
+# that head exercises and sections ("Read the passage", "List the...",
+# "Comment on...", "Phrasal Verbs", "Supplementary Reader") and so appear
+# capitalised. A candidate containing one is not a person unless another of
+# its words is a known first name ("Herbert Read" stays).
+# Generic vocabulary - no person names.
+read
+list
+comment
+discourse
+reader
+readers
+workbook
+verb
+verbs
+clause
+clauses
+story
+exercise
+exercises
+glossary
+unit
+answer
+answers
+phrasal
+modal
+adverbial
+noun
+nouns
+adjective
+adjectives
+adverb
+adverbs
+pronoun
+pronouns
+preposition
+prepositions
+conjunction
+tense
+tenses
+grammar
+vocabulary
+worksheet

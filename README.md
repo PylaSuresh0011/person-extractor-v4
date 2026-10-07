@@ -68,21 +68,44 @@ from simply memorizing single rows, which is why not every confirmed
 example crosses the acceptance threshold after one small labeling
 round; this improves further with more rounds).
 
-### Real PDF/TXT evaluation and balanced training workflow
+### Independent evaluation (holdout) and balanced training workflow
 
-For a production PDF/TXT folder, reserve a file-separated holdout before
-labeling training candidates. The manifest contains only local paths and
-hashes; it is excluded from retraining and git. Start with 20-50 files:
+For a production folder, reserve a file-separated holdout before labeling
+training candidates - the independent test set every accuracy claim should
+rest on (the 7-file benchmark and the two textbooks have been used to tune
+the rules, so they no longer are). The manifest contains only local paths
+and hashes; it is excluded from retraining and git. Start with 20-50 files:
 
 ```powershell
-python scripts/create_pdf_txt_holdout.py --input-dir "C:\case_files" --count 25
-python scripts/prepare_holdout_snapshots.py
+python scripts/create_pdf_txt_holdout.py --input-dir "C:\case_files" --count 40 --formats all --exclude report.xml
+python scripts/prepare_holdout_snapshots.py --premark
 ```
 
-The snapshot command creates pipeline-ready TXT copies of the held-out PDF
-text and TXT input. In a copy of each snapshot, wrap every real person
-mention in `**double asterisks**`, then build its TXT/gold pair and measure
-it. This captures missed people too, so recall is meaningful.
+`--formats all` (2026-10-01) spreads the files evenly over every format the
+tool reads; files with under 30 or over 5,000 words, duplicates of a file
+already picked, and files already in the feedback/training data are skipped.
+The snapshot command writes, per file, the exact text the extractor reads
+(`<name>.txt`) and a pre-marked copy (`<name>.marked.md`) with the names the
+extractor accepts or reviews wrapped in `**double asterisks**`. Open each
+`.marked.md`: remove the `**` around anything that is not a person, fix wrong
+edges, wrap every person it missed (read the whole text - the misses are what
+this measures), change `STATUS: TODO` to `STATUS: DONE`. Then:
+
+```powershell
+python scripts/build_holdout_gold.py
+python scripts/evaluate_holdout.py --label baseline          # add --llm for the LLM reviewer
+python scripts/evaluate_holdout.py --label after-fix --compare experiments\holdout_results\<baseline>.json
+```
+
+Only files marked DONE become gold (an unchecked pre-mark is the extractor's
+own answer), and a file whose text was edited, not just re-marked, is
+refused. The report gives precision, recall and F1 for accepted and for
+accepted + review, with 95% intervals from a bootstrap over files, per file
+format and per name shape. Each run records hashes of the config, model,
+rules and word lists, code, manifest and gold, in
+`experiments/holdout_results/` and a line of `experiments/holdout_ledger.csv`
+(numbers only); the names it missed or wrongly accepted go to
+`output/holdout/` (local only). The older single-file route still works:
 
 ```powershell
 python scripts/build_benchmark_from_markup.py marked_001.md holdout_001 --output-dir datasets/evaluation_holdout/snapshots
@@ -302,7 +325,7 @@ owner, not assumed - see "Real measured results" below. Covered by
 and its control test proving a real dictionary-corroborated name sharing
 the same common-word shape (`Grace Review`) is unaffected.
 
-## Validation Firewall — all 16 validators
+## Validation Firewall — all 17 validators
 
 | Validator | What it catches |
 |---|---|
@@ -317,6 +340,7 @@ the same common-word shape (`Grace Review`) is unaffected.
 | Campaign | Slogans/banners, both exact-match AND generic marker-words for **novel** slogans |
 | Organization | Business/institution names, via keyword generalization |
 | Location | Known place names |
+| Entity type | Ordinary words the document also writes in lowercase ("Read", "Story"), exercise words, lone kinship/role words, places/buildings/awards by their cue words ("Krishna Dist", "Nobel Prize"), quoted titles ("'Maya Bazaar'"), "the X" groups, language/religion words; round 3: places, months, organisations and title-only spans by a document-level majority of mentions - added 2026-10-01, `entity_type_validator.py` |
 | Stopword | Any token that's a common English function word |
 | Grammar | Sentence-initial capitalized words with no dictionary/title support |
 | Context | URL/email adjacency (hard reject); occupation-word precedence (soft boost) |
@@ -513,6 +537,78 @@ file - see below):
 | ACCEPTED only (auto-shipped) | 0.9598 | 0.9131 | 0.9359 |
 | ACCEPTED + REVIEW (what a human sees) | 0.9325 | 0.9625 | 0.9473 |
 
+**2026-10-07 - names the rules dropped or cut short (a third textbook).**
+A 194-page Class IX English textbook, hand-read: 123 people; the run of
+2026-10-06 (LLM reviewer on) found 106, with 18 cut-off rows. Each miss was
+traced to the rule that dropped it. Nothing was added to any word or name
+list - the owner's direction: the data will keep changing, fix the rules.
+
+| Rule | What it did | Now |
+|---|---|---|
+| `RepetitionValidator` | "V. V. Subrahmanyam" rejected - the initial repeats | initials are not compared |
+| `split_double_name_candidates` | cut a 4-word span in two when one half was a dictionary pair, and one word on both name lists made a "pair": "Mohammed Quli Qutub Shah", "F. W. de Klerk", "Martin Luther King Jr." - wrong in 12 of the 13 times it fired on all test data | a pair needs two words in two roles (as `DictionaryDetector` already did); inside a sentence both halves must be confirmed; on a line of fields one half is still enough |
+| `StructureValidator` | "F. W. de Klerk" rejected for the lowercase "de" | a name particle between name words is allowed |
+| `_select_canonical_span` | kept only the part of a name the lists knew: "Pydimarri Venkata Subba Rao" -> "Venkata", "Kurra Suresh Babu" -> "Suresh Babu" | widens to the capitalised run around the hit when every other word reads as a name word (`_name_shaped_span_around`) |
+| `trim_trailing_designations` | "Chief Seattle" -> "Chief" (Seattle is a city) | trims only when a name word is left |
+| `CorroborationValidator` | "William Shakespeare" rejected: `common_english_words.txt` (web frequency) holds "shakespeare"; "Leo Tolstoy" rejected for lack of a spaCy tag | a listed word the document writes 2+ times and never in lowercase is no ordinary word here; first name + unlisted surname inside a sentence passes without spaCy (not after a nationality or calendar word, not in a record field) |
+| `LocationValidator` | "Virginia Woolf" rejected as the state | place word as the FIRST name, unlisted surname, spaCy person tag, running text |
+| `join_wrapped_names` | joined a wrapped name only after two name words and before one | also where a paragraph's line ran out of room (line as wide as its neighbours, prose around it - not verse, lists or headings): "Mohammad / Quli Qutub Shah", "Syed / Moinuddin Zaki", "Benito / Mussolini" |
+| `normalize_typeset` | "V angipurapu V enkata" - a capital spaced off its word by the PDF | joined when what follows is no word itself |
+
+Measured with `experiments/textbook_eval.py` (now three books; the 9th English
+key and gold list are `datasets/textbook_eval/9th_eng_comparison.csv` and
+`tests/fixtures/9th_eng_gold.csv`) and `experiments/regression_check.py`:
+
+| Fast mode, ACCEPTED | precision | recall | people found | cut-off rows |
+|---|---|---|---|---|
+| 10th English | 85.3% -> 88.3% | 80.3% -> 81.4% | 224 -> 227 of 279 | 27 -> 17 |
+| 10th Social (provisional key) | 69.9% -> 72.5% | 80.5% -> 82.9% | 169 -> 174 of 210 | 25 -> 18 |
+| 9th English | 77.0% -> 86.2% | 82.9% -> 89.4% | 102 -> 110 of 123 | 19 -> 4 |
+| benchmark | 0.9680 | 0.9064 | 40 FP - unchanged | |
+
+Unseen names 1.0 / 1.0 and the system dump's 0 FP are unchanged. 9th English
+with the LLM reviewer, against the 2026-10-06 run: precision 84.7% -> 94.2%,
+recall 86.2% -> 92.7% (106 -> 114 of 123), cut-off rows 18 -> 4, non-names
+7 -> 5. 351 tests pass (`tests/test_missed_name_rules.py` holds the rules).
+
+Still missed in that book (9): six single names used once or twice that no
+list holds and no title or cue marks (Rajam, Pragathi, Sindu, Yamuna,
+Ramalinga, Bhagmati - four spellings); "Tamim Ansary" (two unlisted words,
+capital shape only); "Chief Seattle" and "Chief Lutuli" ("Chief" is on the
+blacklist, Seattle is a city). Known costs: a one-half split of two glued
+names no longer happens inside a sentence; a junk single word that was
+accepted before can now come out as its longer phrase ("Bien" -> "Dien Bien
+Phu", "Qutub" -> "Qutub Shahi Dynasty") - the same count of wrong rows.
+Tried and removed for no measured effect: keeping spaCy's one word when the
+wider span adds an ordinary word ("Lutuli" of "Chief Lutuli").
+
+Found on the way: Smart App Control also blocked fontTools' compiled
+`bezierTools`, and pypdf then failed on every PDF with a CFF font - the 10th
+Social textbook came back with no text at all. `PdfReader` now loads the
+module's Python source when the compiled copy is refused and reads the file
+again (`_load_python_source_instead`). The block comes and goes: LightGBM
+itself loaded on 2026-10-07, and the reader-against-LightGBM comparison test
+ran for the first time and passed.
+
+**2026-10-06 - the classifier still scores when Windows blocks LightGBM.**
+Some time after 2026-10-01, Windows Smart App Control switched on and began
+blocking `lib_lightgbm.dll` (`WinError 4551`). Every model load failed, the
+pipeline fell back to rules-only scoring with only a log line to show for
+it, and benchmark accepted recall dropped 0.9064 -> 0.8390 (4 of 317 tests
+failed). The model file was never damaged. `LightGBMClassifier.load()` now
+falls back to `src/classification/lightgbm_text_model.py`, which reads the
+saved text model and walks its trees with numpy - no native library.
+`experiments/regression_check.py` matches the 2026-10-01 record exactly
+(benchmark accepted P 0.9680 / R 0.9064 / 40 FP, accepted+review R 0.9116 /
+60 FP; unseen names 1.0 / 1.0; system dump 0 FP); 326 tests pass, 2 skip.
+Every report shows which one scored it (`ml_classifier_backend`: `lightgbm`
+or `text_model_reader`). Limits: prediction only - `train_model.py` and
+`retrain_from_feedback.py` still need LightGBM itself, so retraining stays
+blocked on this machine until Smart App Control is turned off; the 2 skipped
+tests are the ones that train a model, including the direct score-for-score
+comparison of the reader against LightGBM, which has not run anywhere yet.
+12,459 rows score in 0.23 s.
+
 **2026-09-25 - hostnames no longer reject real names.** `SystemLogValidator`
 treated any 4+-segment dotted string as an Android/Java package, so a real
 name on the same line as `www.bvrit.ac.in`, `priya@cse.bvrit.ac.in` or
@@ -524,6 +620,139 @@ still counts. Benchmark unchanged. Real case, before/after on all 108 files
 containing an exempted hostname (of 19,089): no ACCEPTED change, no name
 gained or lost in REVIEW; "Edit" (already in REVIEW) +4 mentions in one
 preferences XML.
+
+**2026-10-01 - every window run is stored, with its times.** Each run in
+`gui.py` gets its own folder, `output\gui\runs\<date>_<start time>\`:
+`results.csv` (the names), `results.txt` (a readable report that opens
+with the date, start time, end time, time taken, mode and counts) and
+`files.csv` (every file with its status, names found and seconds). Every
+run also adds a line to `output\gui\run_history.csv` - date, start, end,
+time taken, files, failures, names, accepted, review, mode, LLM reviewer
+status and the paths as pasted. The window shows the times when a run
+ends; "Run history" opens the history. Nothing is overwritten; it all
+stays on this machine (`output\` is never committed).
+Run data and extraction data also come together in one CSV: every row of
+a run's `results.csv` carries the run's folder, date, start, end, time
+taken, mode, LLM status and file count next to the name, and every run is
+appended to `output\gui\all_runs_with_names.csv` the same way (a run with
+no names still gets one row).
+
+**2026-10-01 (round 3) - two textbooks, decisions by score.** `python eval.py`
+now scores two books per book and macro-averaged (`--llm` with the LLM
+reviewer): the English one of round 1 and a 346-page Social Studies book
+(rivers, places, months, parties and movements that look like first names;
+docs/PERSON_EXTRACTOR_improvement_brief_v2.md). A change was kept only if
+the macro F1 of accepted rows rose and neither book fell by more than a
+point. Accepted rows, Fast mode -> with the LLM reviewer:
+
+| | Precision | Recall | F1 |
+|---|---|---|---|
+| Before, Fast (English / Social) | 84.8 / 60.2 | 80.3 / 73.3 | 82.5 / 66.1 |
+| After, Fast | 85.3 / 69.9 | 80.3 / 80.5 | 82.7 / 74.8 |
+| Before, LLM reviewer | 86.1 / 67.5 | 80.3 / 73.3 | 83.1 / 70.3 |
+| After, LLM reviewer | 89.4 / 79.9 | 86.4 / 86.7 | 87.8 / 83.2 |
+
+- Decisions follow the final score: accept at 0.7, review at 0.45, drop
+  below (`feature_score.py`, files only). The decision engine's verdict is
+  one input (accepted 0.65, review 0.30); title, initials, person cues,
+  name lists and spaCy add to it, ordinary words and quoted titles take
+  away. Review junk fell from 64% to 29% in Fast mode (macro).
+- The LLM reviewer reads the sentences around up to three mentions and
+  says PERSON / PLACE / ORG / WORK / EVENT / TIME / OTHER (few-shot: a
+  river, a movement, a month, a title); P(PERSON) moves the score up by up
+  to 0.3 and down by up to 0.8, and every decision it changes is logged with
+  its reason (`model_info["llm_overrides"]`).
+- Places, months and organisations by document-level majority
+  (`entity_type_validator.py`): geography words next to a name, known place
+  names around it, lists of rivers, month and season words, organisation
+  head-nouns (Movement, Commission, Sena, Dal...), title-only spans.
+- Initials without dots ("IK Gujral" -> "I.K. Gujral"), initials as
+  person evidence that a place match can't override, wrapped names after a
+  role word ("the emperor, Bao / Dai"), designations cut off the end of a
+  name ("Dr. I. Thirumali Senior Fellow"), and person cues for a life span
+  "(1866-1925)", "(who ...", "X of <country>", "economists like X", "X
+  wrote", "parents were X and Y", "Malcom X", author lines and religious
+  titles.
+- Benchmark (Fast): accepted P 0.981 -> 0.968, R 0.903 -> 0.906, unseen R
+  0.966 -> 1.000; 16 of the 17 added false positives are "Nadka", a nickname of
+  a gold person the gold leaves out. Accepted + review recall 0.963 -> 0.912:
+  weak review names (code names in benchmark_real_675) are now dropped.
+- Left off, measured twice: one row per alias cluster (duplicates 84 ->
+  23 but F1 78.8 -> 78.1, Social -1.1) - `--merge-aliases` / `merge_aliases`.
+- Column-by-column text was not needed: pypdf already reads this book's
+  two columns in order; the broken names came from line breaks.
+- The Social book's gold list and full key were not in the project: its
+  numbers use a provisional key built from the round-2 brief (210 of 234
+  people) until `tests/fixtures/10th_social_gold.csv` is added.
+
+**2026-10-01 - a school textbook as a test: F1 66.0% -> 84.3%.** A
+274-page PDF (Class X English, Telangana SCERT) was scored against a
+hand-labelled key of 279 people (`datasets/textbook_eval/`,
+`python eval.py`; precision = correct entries / entries, recall = people
+found by a correct, complete entry). Every change below was measured on
+the book and on the benchmark, benchmark_unseen and the system dump; a
+change that lowered F1 was reverted. Fast mode, accepted + review:
+
+| | Precision | Recall | F1 | Truncated | Duplicates |
+|---|---|---|---|---|---|
+| Before (the key's own run) | 59.1% | 74.9% | 66.0% | 52 | 42 |
+| After | 80.2% | 88.9% | 84.3% | 30 | 52 |
+
+Accepted only: 70.3 / 64.5 / 67.3% -> 84.8 / 80.3 / 82.5%. Benchmark
+accepted P 0.9789 -> 0.9813 (FP 26 -> 23), recall unchanged; unseen and
+the system dump unchanged.
+
+- Page furniture (`page_furniture.py`): lines on 20%+ of pages and lone
+  watermark letters are blanked - the footer alone gave "English" 329 times.
+- PDF typesetting (`typeset.py`): "G.Gopal" -> "G. Gopal", "S.V ." ->
+  "S.V.", "Merry-/weather" joined, a name wrapped to the next line joined.
+- Boundaries (`boundary_refiner.py`): particles and suffixes ("Van Gogh",
+  "Henry Ford II", "Sr."), leading words ("As Bayaji"), initials before a
+  name ("S.V. Ranga Rao"); a title with only an initial ("Dr. G") rejected.
+- Other entity types (`entity_type_validator.py`, `assets/entity_cues/`):
+  the document's own lowercase use, exercise words, lone kinship words,
+  place/building/award cue words, quoted titles, "the X", languages and
+  religions; Indian states added to `locations.txt`.
+- Person cues (`regex_detector.py`): kinship words ("his wife
+  Sumanthamma"), sign-offs, salutations, speaker labels used twice, Sri/Smt
+  as titles, joined initials as one token. List propagation
+  (`list_propagation.py`): when half a list's items are accepted names, the
+  rest are names. Aliases a document states ("Nandamuri Taraka Ramarao
+  (NTR)", `explicit_aliases.py`). A first name like "Stephen" or "Mary" on
+  the collision list is trusted when spaCy tags it and the document never
+  writes it in lowercase, or a surname no list knows follows ("Hawking").
+- New columns in every CSV: `aliases` (other forms of the same person,
+  `alias_resolution.py`), `score` (feature score, `feature_score.py`) and
+  `entity_reason` (why it is a person, in a few words).
+- Reverted / left off, measured: merging alias rows into one
+  (`--merge-aliases`: duplicates 52 -> 21 but F1 84.0 -> 83.0 - each merged
+  duplicate was a correct entry, and a few merges join different people
+  sharing a name); the feature score as the accept/review gate
+  (`decision.feature_score_gate`: accepted-only F1 82.5 -> 66.6, benchmark
+  accepted recall 0.90 -> 0.60); a sentence-start exemption for words never
+  written in lowercase (F1 83.8 -> 83.0, +4 benchmark false positives).
+- Real case (Fast mode, vs exp08b - the last scan without the LLM
+  reviewer): accepted 210 -> 253, review 317 -> 316. 47 real people newly
+  accepted (citation authors, signature-block names, fuller forms such as
+  "J. Werner" for "Werner"); 8 noise names gone or moved to review ("Colorful
+  List", "Dark List", "Mr. K", "Suicidal"...); about 10 new noise accepts
+  (drug names repeated in a PDF list, "Atlas", "Bull", "Hill", "Smart
+  Compose", a "Dear ... Customer Service" salutation, two over-long spans
+  such as "Peter Ekpunobi Lecturer"). A first rescan had shown 7 more (Android
+  dump lines read as speaker labels, a country picker's JSON, "Opera Mini")
+  and "Siri" (an owner decision) dropped; those were fixed and the rescan
+  repeated.
+
+**2026-09-30 - runs keep going with nobody at the keyboard.** On battery
+this laptop's power plan sleeps after 3 idle minutes, so a long run (a full
+scan with the LLM reviewer takes ~40 min) only advanced while someone used
+the machine, and Windows also slows apps that aren't in front. While a run
+lasts - the window, `cli.py` and `scan_directory.py`, including each scan
+worker - the PC is now kept from sleeping (the screen may still turn off
+and lock) and the tool and Ollama are exempt from background throttling;
+normal sleep resumes when the run ends (`src/utils/keep_awake.py`, Windows
+power APIs, no new dependency). Checked: a window run minimized for its
+whole length finished at full speed. Results are unaffected.
 
 **2026-09-29 - a small window (`gui.py`).** Double-click `run_gui.bat` (or
 run `.venv\Scripts\python gui.py`): paste file or folder paths, one per

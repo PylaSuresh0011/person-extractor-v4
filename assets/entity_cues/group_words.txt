@@ -1,0 +1,68 @@
+# Languages, nationalities, religions and social groups (added 2026-10-01,
+# error brief P3): "English" (54 mentions as a language in a textbook, after
+# its footer was removed), "French", "Muslim", "Dalit". On its own such a word
+# names a group or a language, so a candidate that is one of these words and
+# nothing else is rejected; "John English" or "Mr. French" is unaffected.
+# Some of these were deliberately left off languages/
+# language_and_region_names.txt because they are also surnames - this list
+# rejects only the bare single word.
+# Generic vocabulary - no person names.
+english
+french
+german
+spanish
+italian
+portuguese
+dutch
+russian
+chinese
+japanese
+korean
+arabic
+persian
+greek
+latin
+hebrew
+sanskrit
+urdu
+hindi
+bengali
+marathi
+gujarati
+punjabi
+kannada
+malayalam
+telugu
+tamil
+indian
+american
+british
+african
+european
+asian
+australian
+canadian
+nigerian
+pakistani
+muslim
+muslims
+hindu
+hindus
+christian
+christians
+sikh
+sikhs
+jain
+jains
+buddhist
+buddhists
+jewish
+parsi
+catholic
+protestant
+dalit
+dalits
+brahmin
+brahmins
+adivasi
+adivasis

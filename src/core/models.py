@@ -330,6 +330,9 @@ class CandidateState:
     # still score an ML probability high enough to otherwise satisfy that
     # gate on shape alone.
     repetition_count: int = 0
+    # Feature score in [0, 1] of this name's surface form (ACCEPTED/REVIEW
+    # only) - src/decision/feature_score.py; the output's score column.
+    person_score: float | None = None
 
     def add_evidence(self, source: str, label: str, score: float) -> None:
         self.evidence.append(EvidenceItem(source=source, label=label, score=score))
@@ -420,6 +423,12 @@ class AggregatedPerson:
         return max((m.state.final_confidence for m in self.mentions), default=0.0)
 
     @property
+    def score(self) -> float | None:
+        """Feature score (src/decision/feature_score.py), highest over its mentions."""
+        scores = [m.state.person_score for m in self.mentions if m.state.person_score is not None]
+        return max(scores) if scores else None
+
+    @property
     def decision(self) -> Decision | None:
         """A person is ACCEPTED if at least one mention was accepted -
         repeated weak mentions of an already-confirmed real name should
@@ -504,6 +513,9 @@ class ExtractionResult:
     # firewall - detections merged by CandidateFactory and boundary-refined,
     # with nothing validated, scored or decided. Empty in a normal run.
     firewall_input: tuple[CandidateResult, ...] = ()
+    # Aliases the document states - (alias, name) pairs such as ("NTR",
+    # "Nandamuri Taraka Ramarao"); see src/candidate/explicit_aliases.py.
+    aliases: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(slots=True)

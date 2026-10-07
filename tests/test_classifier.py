@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
+import pytest
 
 from src.classification.lightgbm_classifier import LightGBMClassifier
 from src.core.models import FeatureVector
@@ -21,7 +22,12 @@ def test_model_trained_on_older_shorter_schema_reads_leading_columns():
     """Features are only ever appended, so a model saved before the
     latest additions must keep working - scoring on exactly the columns it
     was trained on, ignoring the newer trailing ones."""
-    import lightgbm as lgb
+    try:
+        import lightgbm as lgb
+    except (ImportError, OSError) as exc:
+        # Training a throwaway model needs the real library; the reader's
+        # own tests cover scoring when it cannot be loaded.
+        pytest.skip(f"LightGBM's native library cannot be loaded here: {exc}")
 
     rng = np.random.default_rng(0)
     X_old = rng.integers(0, 3, size=(200, 19)).astype(float)

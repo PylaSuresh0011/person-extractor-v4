@@ -65,11 +65,16 @@ this pipeline.
 
 from __future__ import annotations
 
-from src.core.models import CandidateResult, ValidationResult
+from src.core.models import CandidateResult, DetectorName, ValidationResult
 from src.knowledge.knowledge_base import KnowledgeBase
 from src.preprocessing.segmenter import count_occurrences
 from src.validation.base_validator import BaseValidator
-from src.validation.validators.corroboration_validator import CorroborationValidator
+from src.validation.document_case import CaseCache
+from src.validation.validators.corroboration_validator import (
+    CorroborationValidator,
+    _is_record_field_value,
+    rare_surname_follows,
+)
 
 
 class LocationValidator(BaseValidator):
@@ -82,9 +87,11 @@ class LocationValidator(BaseValidator):
         # cleared per document; ValidationPipeline.reset_document_cache()
         # does this automatically for any validator exposing the method.
         self._repetition_cache: dict[str, int] = {}
+        self._case = CaseCache()  # see src/validation/document_case.py
 
     def reset_document_cache(self) -> None:
         self._repetition_cache.clear()
+        self._case.clear()
 
     def validate(self, candidate: CandidateResult, knowledge_base: KnowledgeBase, document_text: str) -> ValidationResult:
         text = candidate.candidate.normalized_text
@@ -109,9 +116,8 @@ class LocationValidator(BaseValidator):
 
         return ValidationResult(self.name, passed=True, score=0.0, message="Not a known location")
 
-    @staticmethod
     def _is_rescued(
-        tokens: list[str], start: int, end: int, knowledge_base: KnowledgeBase,
+        self, tokens: list[str], start: int, end: int, knowledge_base: KnowledgeBase,
         candidate: CandidateResult, document_text: str,
     ) -> bool:
         """A location sub-phrase is rescued from hard-rejection when
@@ -143,6 +149,19 @@ class LocationValidator(BaseValidator):
             return True
         if not other_tokens:
             return False
+
+        # The place word is the FIRST name and a surname no list knows
+        # follows ("Virginia Woolf", "Florence Nightingale", 2026-10-07) -
+        # the reading CorroborationValidator already makes for a first name
+        # that is also an ordinary word: spaCy tagged a person, in running
+        # text. The rescue above looks for a first name among the OTHER
+        # tokens, so a quotation's author in a textbook was rejected as
+        # the state of Virginia.
+        if (start == 0 and end == 1 and knowledge_base.is_known_first_name(tokens[0].rstrip("."))
+                and any(d.detector == DetectorName.SPACY for d in candidate.candidate.source_detections)
+                and rare_surname_follows(candidate.candidate.normalized_text, knowledge_base, document_text, self._case)
+                and not _is_record_field_value(document_text, candidate.candidate.start)):
+            return True
 
         # Repetition of the FULL candidate ("Charlotte Reyes"), not just
         # the matched sub-phrase ("Charlotte") - a lone repeated city
