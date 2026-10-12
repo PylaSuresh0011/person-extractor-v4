@@ -14,6 +14,21 @@ hold the rule changes, not the names - none of them was added to a list.
                 also an ordinary word, a surname no list holds
   location      "Virginia Woolf": the first name is also a place
   typeset       names cut by a line wrap or by a spaced-out capital
+
+2026-10-12: the case folder scanned again with these rules, against the 365
+names read from it by hand. Names it had found on 2026-10-01 and now lost:
+
+  span choice   "LtCol RK Verma": widened onto a word the structure check
+                refuses, and refused whole
+  corroboration "William H. Gates III": a suffix hid the middle initial
+  entity type   "Stuart Tooley, Queensland University": an organisation
+                after a comma counted as part of the name
+  location      "Chanda Nagar, India" accepted: a town before its country
+  score         "Watson", "Wright": listed surnames scored as ordinary words;
+                "Siri", a name by an owner decision, dropped by its score
+  citations     "Abdolmohammadi, M; Harris, J and Smith, K (2002)", "Chi et
+                al.": the authors a research paper cites - most of them never
+                a candidate
 """
 import copy
 import sys
@@ -25,13 +40,16 @@ import pytest
 
 from config import BASE_DIR, DEFAULT_CONFIG
 from src.candidate.boundary_refiner import split_double_name_candidates, trim_trailing_designations
-from src.candidate.candidate_factory import _select_canonical_span
+from src.candidate.candidate_factory import _select_canonical_span, is_middle_initial_name
 from src.core.models import Candidate, CandidateResult, Detection, DetectorName
+from src.decision.feature_score import person_features
+from src.detection.regex_detector import CITATION_CUE, RegexDetector
 from src.knowledge.knowledge_base import KnowledgeBase
 from src.pipeline.orchestrator import Pipeline
 from src.preprocessing.line_indexer import LineIndex
 from src.preprocessing.typeset import join_wrapped_names, normalize_typeset
 from src.validation.validators.corroboration_validator import CorroborationValidator
+from src.validation.validators.entity_type_validator import EntityTypeValidator
 from src.validation.validators.location_validator import LocationValidator
 from src.validation.validators.repetition_validator import RepetitionValidator
 from src.validation.validators.structure_validator import StructureValidator
@@ -131,6 +149,14 @@ def test_no_widening_onto_sentence_words_or_from_a_calendar_word():
     assert chosen("Bharatiya Jan Sangh", "Jan", "dictionary_single_token") == "Jan"     # "Jan" alone is refused later
 
 
+def test_no_widening_onto_a_word_the_structure_check_refuses():
+    """ "I am LtCol RK Verma from the lab": the widened span was refused
+    whole for "LtCol", and the person with it."""
+    chosen = lambda text, hit, pattern: _select_canonical_span(_cluster(text, hit, pattern), KB).text  # noqa: E731
+    assert chosen("LtCol RK Verma", "Verma", "dictionary_single_token") == "Verma"
+    assert chosen("NDTV Suresh Babu", "Suresh Babu", "dictionary") == "Suresh Babu"     # an acronym
+
+
 def test_byline_gives_the_whole_name(pipeline):
     pages = ["Jaya jaya jaya, jaya he!\nPLEDGE\n- Pydimarri Venkata Subba Rao\nIndia is my country. All Indians are "
              "my brothers and sisters.\n" + FOOTER, FILLER + FOOTER, FILLER + FOOTER]
@@ -179,6 +205,33 @@ def test_the_same_pair_as_a_record_field_or_after_a_nationality_is_refused():
     assert not _corroborated(doc, "German Fascism", ("bare", "dictionary_single_token"))
 
 
+def test_generational_suffix_after_a_middle_initial_name():
+    assert is_middle_initial_name("William H. Gates III") and is_middle_initial_name("John F. Kennedy Jr.")
+    assert not is_middle_initial_name("William Gates III")   # no initial
+    doc = "Signature |  | Title\n\n/s/ William H. Gates III |\nWilliam H. Gates III |  | Chairman"
+    assert _corroborated(doc, "William H. Gates III", ("bare", "dictionary_single_token", "spacy_ner"))
+
+
+# --- an organisation after the name -------------------------------------------
+
+def _entity_type(doc: str, name: str):
+    return EntityTypeValidator().validate(_candidate(doc, name, ("bare", "spacy_ner")), KB, doc)
+
+
+def test_organisation_after_a_comma_or_on_the_next_line_is_not_part_of_the_name():
+    doc = ("Stuart Tooley, Queensland University of Technology, Brisbane, Australia\n\n"
+           "Corresponding author:\n\nFawzi Laswad\nUniversity of Otago\nPrivate Bag 11 222\n")
+    assert _entity_type(doc, "Stuart Tooley").passed
+    assert _entity_type(doc, "Fawzi Laswad").passed
+
+
+def test_organisation_word_in_the_same_phrase_still_makes_an_organisation():
+    doc = ("They waited for the Mandal\nCommission to finish its work. A year later the Mandal Commission "
+           "gave its report to the government.")
+    result = _entity_type(doc, "Mandal")
+    assert not result.passed and "org_head" in result.message
+
+
 # --- a first name that is also a place ---------------------------------------
 
 def _not_a_location(doc: str, name: str, patterns: tuple[str, ...]) -> bool:
@@ -191,6 +244,33 @@ def test_place_word_as_a_first_name_before_an_unlisted_surname():
     assert not _not_a_location(doc, "Virginia Woolf", ("bare", "dictionary_single_token"))   # no spaCy tag
     doc = "They drove to Virginia Beach for the weekend."
     assert not _not_a_location(doc, "Virginia Beach", ("bare", "dictionary_single_token", "spacy_ner"))
+
+
+def test_place_word_first_name_stays_a_place_before_its_country():
+    doc = "The parcel was sent to the branch office at Chanda Nagar, India last week."
+    assert not _not_a_location(doc, "Chanda Nagar", ("bare", "dictionary_single_token", "spacy_ner"))
+
+
+# --- the final score: a listed surname is not an ordinary word ----------------
+
+def _scored_as_ordinary_word(doc: str, name: str) -> bool:
+    return person_features([_candidate(doc, name, ("bare", "dictionary_single_token"))], doc, KB)["ordinary_word"]
+
+
+def test_listed_surname_capitalised_inside_a_sentence_is_no_ordinary_word():
+    """The frequency list of ordinary words holds "watson" and "wright"."""
+    assert not _scored_as_ordinary_word("Similar results were reported by Hodge and Watson in the same year.", "Watson")
+    assert _scored_as_ordinary_word("Watson\nBlock\nRead\n", "Watson")                 # labels: no sentence
+    assert _scored_as_ordinary_word("It was signed by Watson. The watson unit was renamed.", "Watson")   # lowercase too
+    assert _scored_as_ordinary_word("The reply came from the Parliament in the same year.", "Parliament")   # no surname
+
+
+def test_owner_confirmed_name_takes_no_negative_feature():
+    """ "Siri" is a name by an owner decision (confirmed_names.txt); the
+    voice-command file that holds it also writes "siri call"."""
+    doc = "Siri call $CONTACTS\nsiri call $CONTACTS\nsiri text $CONTACTS\nsiri open $APP"
+    features = person_features([_candidate(doc, "Siri", ("dictionary_single_token",))], doc, KB)
+    assert not features["lowercase_use"] and not features["ordinary_word"]
 
 
 # --- typeset text -------------------------------------------------------------
@@ -232,9 +312,71 @@ def test_capital_spaced_off_its_word_is_joined_unless_a_word_follows():
     assert normalize_typeset("V enkata came.") == "V enkata came."   # no word list given: nothing is joined
 
 
+# --- cited authors --------------------------------------------------------------
+
+REFERENCES = (
+    "Abdolmohammadi, M; Harris, J and Smith, K (2002), Government financial reporting on the internet.\n\n"
+    "Ashbaugh, H; Johnstone, K.M and Warfield, T.D (1999), Corporate reporting on the internet.\n\n"
+    "Brown, D; Beach, L.R and Stone, D.N (1991), Human judgment accuracy.\n\n"
+    "Fergusson, D.M., Woodward, L.J. & Horwood, L.J. (1997). Early onset cannabis use.\n\n"
+    "Lipe, M.G and Salterio, S.E (1 999), The balance scorecard.\n\n"                   # the PDF spaced a digit off
+    "Fazel, S., Cartwright, J., Norman-Nott, A.& Hawton, K. Suicide in prisoners: a systematic review.\n\n"
+    "Innamorati, M., Pompili, V., Ferrari et al., (2008 ) Cannabis use and the risk behaviour syndrome.\n\n"
+    "Rohrman, B. 1986. Evaluating the usefulness of decision aids.\n\n"
+    "Vera-Munoz, S.C; Kinney Jr, W.R and Bonner, S.E (2001), The effects of domain experience.\n\n"
+    "Vessey, I (1991), Cognitive fit. Englewood Cliffs, N.J.: Prentice-Hall\n"
+)
+
+
+def _cited(doc: str) -> list[str]:
+    return [d.text for d in RegexDetector().detect(doc, 0) if d.metadata.get("cue") == CITATION_CUE]
+
+
+def test_authors_of_a_reference_list_are_cited_people():
+    cited = _cited(REFERENCES)
+    for name in ("Abdolmohammadi", "Harris", "Smith", "Warfield", "Beach", "Horwood", "Salterio", "Norman-Nott",
+                 "Hawton", "Pompili", "Ferrari", "Rohrman", "Vera-Munoz", "Kinney Jr", "Vessey"):
+        assert name in cited, name
+    assert "Cliffs" not in cited      # the publisher's town: no year closes it
+    # An organisation cited by its acronym is no author with initials.
+    assert "Programme" not in _cited(REFERENCES + "as reported (Arrestee Drug Abuse Monitoring Programme, ADAM, 2000).")
+
+
+def test_name_before_et_al_is_a_cited_person():
+    assert _cited("as others found (Ashbaugh et al., 1999), and Chi et al. (1981) agreed.") == ["Ashbaugh", "Chi"]
+
+
+def test_no_reference_list_no_cited_authors():
+    assert _cited("Sorry, I 2000 pay chesta\nOk, I 2024 lo vasta\nSare, U 2000 pampu\nHyderabad, T.S. 500081\n") == []
+    assert _cited("Smith, K (2002) wrote it, and Jones, B (2004) answered.") == []   # two entries are no list
+
+
+def test_citation_gives_the_extent_of_the_name():
+    """spaCy tagged "Chi et al" whole, and the structure check refused it."""
+    cluster = [Detection("Chi et al", 0, 9, 0, DetectorName.SPACY, 0.8, {"pattern": "spacy_ner"}),
+               Detection("Chi", 0, 3, 0, DetectorName.REGEX, 0.85, {"pattern": "person_cue", "cue": CITATION_CUE})]
+    assert _select_canonical_span(cluster, KB).text == "Chi"
+
+
+def test_cited_author_is_not_scored_as_an_ordinary_word():
+    start = REFERENCES.index("Beach")
+    cue = Detection("Beach", start, start + 5, 0, DetectorName.REGEX, 0.85, {"pattern": "person_cue", "cue": CITATION_CUE})
+    cited = CandidateResult(candidate=Candidate.new("Beach", "Beach", start, start + 5, 0, (cue,)))
+    assert not person_features([cited], REFERENCES, KB)["ordinary_word"]
+
+
+def test_cited_authors_come_out_of_a_paper(pipeline):
+    paper = ("This study examines how the format of a report affects the decisions of its users. Earlier work "
+             "found that users group similar items together (Ashbaugh et al., 1999).\n\nReferences\n\n" + REFERENCES)
+    accepted = {p.display_text for p in pipeline.run_text(paper).persons}
+    assert {"Abdolmohammadi", "Warfield", "Beach", "Salterio", "Hawton"} <= accepted
+    # The initials after "Hawton," and the title's first word are no person in the list of authors.
+    assert "K. Suicide" not in accepted
+
+
 # --- whole pipeline -----------------------------------------------------------
 
-FOOTER = "English Class IX Free distribution by Government of Telangana 2024-25"
+FOOTER ="English Class IX Free distribution by Government of Telangana 2024-25"
 FILLER = "The students read the lesson carefully and wrote answers in their notebooks.\n"
 
 

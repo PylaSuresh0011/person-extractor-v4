@@ -537,6 +537,100 @@ file - see below):
 | ACCEPTED only (auto-shipped) | 0.9598 | 0.9131 | 0.9359 |
 | ACCEPTED + REVIEW (what a human sees) | 0.9325 | 0.9625 | 0.9473 |
 
+**2026-10-12 - the case folder scanned again, against the 365 hand-read names.**
+The first full scan since 2026-10-01 14:48 - so the first with that
+afternoon's score decisions (round 3) and with the 2026-10-07 rules. Same
+19,090 files and settings (`--include-review --exclude report.xml
+--no-llm-review`), scored against the names read from the folder by hand on
+2026-10-06 (`output/manual_review/`).
+
+| | 2026-10-01 | 2026-10-12, first scan | after the six fixes | with the citation rule |
+|---|---|---|---|---|
+| hand-read names ACCEPTED (of 365) | 182 | 178 | 184 | 285 |
+| in REVIEW | 50 | 21 | 18 | 15 |
+| missed | 133 | 166 | 163 | 65 |
+| case people found (of 16) | 12 | 11 | 12 | 12 |
+| accepted rows / matching no hand-read name | 253 / 55 | 243 / 50 | 250 / 50 | 355 / 53 |
+| review rows | 316 | 88 | 83 | 80 |
+
+The score decisions had never been run on this folder. They cut the review
+list from 316 rows to 88, and 34 of the rows they dropped are hand-read
+names: cited authors with one mention ("Warfield", "Messier"), reviewer
+names on saved complaint pages ("Bryannah Xqc"), two-word names no list
+holds ("Ioulia Kondratovitch"). Nearly all are a REVIEW verdict with a spaCy
+tag and no lowercase use - 0.42, just under the 0.45 line. The line was left
+where it is (owner: keep the short review list); the evidence the cited
+authors do have - the layout of a citation - is what the new rule reads.
+
+**Cited authors (`regex_detector.py`, person cue "citation").** 102 of the
+133 names missed on 2026-10-01 were authors cited in three research papers;
+a lone surname no list holds was never even a candidate. Two layouts now
+mark a person, the way a title does:
+- a reference-list entry - authors written surname, initials, joined by ";",
+  "," or "and" / "&" and closed by the year: "Abdolmohammadi, M; Harris, J
+  and Smith, K (2002)", "Fergusson, D.M., Woodward, L.J. & Horwood, L.J.
+  (1997)". The document must hold three such entries (one author alone needs
+  the year in brackets - "Sorry, I 2000 pay" in a chat is an amount); in a
+  document that has them, three authors in a row, authors before "et al.",
+  or one author before a bare year also count. A digit the PDF spaced off
+  inside the brackets is read ("(1 999)"); a suffix stays with the surname
+  ("Kinney Jr, W.R"); initials are letters set apart, or two together -
+  "(... Monitoring Programme, ADAM, 2000)" is an organisation;
+- a name before "et al." ("Ashbaugh et al., 1999").
+
+The citation gives the extent of the name (`_boundary_priority`: spaCy had
+tagged "Chi et al" and "Harris, J" whole), a cited author is not scored as
+an ordinary word ("Brown", "Beach", "Stone"), and an author's initials are
+no item of a list of names (`list_propagation`: "Hawton, K. Suicide in
+prisoners" had given "K. Suicide"). On the case: 104 more accepted rows, all
+from two of the papers and their copies - no other file of the 19,090
+changed, and nothing accepted before was lost. Of the 53 accepted rows that
+match no hand-read name, two are cited authors in another spelling
+("Frishoff", "Reinhertz") and two are owner decisions ("Alexa", "Siri").
+Textbooks and benchmark: not one row changed.
+
+Cited authors still not accepted (38 of 261): surnames that are places
+("Kennedy", "Hamilton", "Beaumont", "Birmingham" - no citation rescue: a
+reference list also names publishers' towns), "Young" (stopword), "Stock"
+(blacklist), "So" (two letters), names cited only inside the text ("Rich",
+"Black", "Fairbairn" - an author-year rule would clash with "Maya Bazaar
+(1957)" in a textbook), "Hard" and "Vanacek" (the PDF wrote "Van acek"), and
+the third paper's reference list, initials first ("A. Castaing"), which
+leaves 11 in REVIEW.
+
+Six rule changes for the other names lost or wrongly added - no list changed:
+
+| Rule | What it did | Now |
+|---|---|---|
+| `_name_shaped_span_around` (2026-10-07) | a chat line of the shape "I am LtCol RK Verma": the surname widened to rank, initials and surname, refused whole by the structure check - a case person lost | a word the structure check refuses (`name_token_problem`) is no name word; the surname is accepted as before |
+| `is_middle_initial_name` | "William H. Gates III" refused ("william" is on the ordinary-word list) - the suffix hid the middle initial | a generational suffix after the surname is allowed |
+| `EntityTypeValidator`, organisation word after a name (round 3) | paper authors refused as organisations: "Stuart Tooley, Queensland University of Technology", "Fawzi Laswad" above an address line | the organisation word must continue the phrase - not after punctuation, a blank line, or a line the name has to itself |
+| `LocationValidator` (2026-10-07) | a town written before its country ("Chanda Nagar, India") accepted as a person | no rescue when a known place follows after a comma |
+| `feature_score`, ordinary word (round 3) | "Watson", "Wright", "Ferrari" fell from accepted to review - surnames the frequency list also holds | a listed surname the document capitalises inside a sentence and never writes in lowercase is no ordinary word |
+| `feature_score` | "Siri" (owner decision of 2026-09-28) dropped by its score - the file also writes "siri call" | a name on `confirmed_names.txt` takes no negative feature |
+
+Textbooks, ACCEPTED precision / recall: 10th English 88.3 / 81.4 -> 88.0 /
+81.4 ("Ford" alone, a cut-off form, is now accepted); 10th Social 72.5 / 82.9
+-> 72.4 / 83.3 ("Lakshmikanth Rao" found - "Commission" began the next
+paragraph; "Pol" of "Dept. of Pol.Sc, University" now accepted); 9th English
+unchanged at 86.2 / 89.4. Benchmark accepted precision 0.9680 -> 0.9649 (FP
+40 -> 44), recall unchanged at 0.9064: the four are "Agent Foster" in
+`benchmark_real_660`, the surname of the gold person "Diane Foster", which
+the gold leaves out when it stands alone (as it does "Nadka") - the cost of
+the surname rule on paper, together with "Bull" (a journal abbreviation)
+accepted again in the case. Unseen names 1.0 / 1.0, system dump 0 FP. 364
+tests pass (`tests/test_missed_name_rules.py` holds the rules of both days).
+
+Still wrong after this scan: "Deep Learning" (the 2026-10-07 rule for a word
+the document only ever capitalises - "Learning" twice, in a list of skills),
+"Tea Tre" (the 2026-10-07 widening, on a PDF's split "Tre e"), "Mohamed S Mjb
+Oct" (a month before a date taken into the name), "H.E.M. North Am" (an OCR
+chart legend). "Fawzi Laswad" now passes the organisation check and falls
+under the score line (the citation rule gives "Laswad"). The four scans took
+15.4 to 17.2 minutes against 14.2 on 2026-10-01; not looked into. Outputs
+under `output/self_upgrade/`: `rules_20261012` (first scan), `rules_20261012b`
+(the six fixes), `rules_20261012d` (with the citation rule - the last column).
+
 **2026-10-07 - names the rules dropped or cut short (a third textbook).**
 A 194-page Class IX English textbook, hand-read: 123 people; the run of
 2026-10-06 (LLM reviewer on) found 106, with 18 cut-off rows. Each miss was

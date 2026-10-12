@@ -117,6 +117,25 @@ _GEO_OF = re.compile(r"\b(?:tributar(?:y|ies)|banks?|basin|source|valley|delta|w
                      re.IGNORECASE)
 _WORD = re.compile(r"[A-Za-z]+")
 _TIME_AFTER = frozenset({"calendar", "calendars", "era"})
+_PHRASE_BREAK = re.compile(r"[,;:()\[\]{}|–—]|\n[ \t]*\n")
+
+
+def _same_phrase_words(text: str, start: int, end: int) -> list[str]:
+    """The next two words, as far as they continue the phrase the mention is
+    in ("Mandal Commission", "Tata Motors"). Punctuation, a blank line, or
+    the end of a line the mention has to itself begins something else
+    (2026-10-12): a research paper in a case folder named its authors as
+    "Stuart Tooley, Queensland University of Technology" and "Fawzi Laswad"
+    above a line "School of Accountancy", and both were refused as
+    organisations."""
+    tail = text[end:end + 40]
+    cut = _PHRASE_BREAK.search(tail)
+    if cut:
+        tail = tail[:cut.start()]
+    line_end = tail.find("\n")
+    if line_end != -1 and not tail[:line_end].strip() and not text[text.rfind("\n", 0, start) + 1:start].strip():
+        tail = tail[:line_end]
+    return [w.lower() for w in _WORD.findall(tail)[:2]]
 
 
 class EntityTypeValidator(BaseValidator):
@@ -265,7 +284,7 @@ class EntityTypeValidator(BaseValidator):
                 before = [w.lower() for w in _WORD.findall(before_text)]
                 possessive = text[e:e + 2] in ("'s", "’s")
                 counts["n"] += 1
-                if any(w in knowledge_base.org_head_nouns for w in after):
+                if any(w in knowledge_base.org_head_nouns for w in _same_phrase_words(text, s, e)):
                     counts["org"] += 1
                 elif after[:1] and after[0] in _TIME_AFTER:
                     counts["time"] += 1

@@ -52,6 +52,7 @@ class StructureValidator(BaseValidator):
                 message="Only a title and bare initials - a name cut short, not a complete name",
             )
 
+        acronym_vouched = _vouched_acronym(candidate)
         for i, token in enumerate(tokens):
             if i == len(tokens) - 1 and i > 0 and ROMAN_SUFFIX_RE.match(token):
                 continue  # "Henry Ford II" - see ROMAN_SUFFIX_RE
@@ -62,30 +63,9 @@ class StructureValidator(BaseValidator):
                 # "Ludwig van Beethoven", 2026-10-07): spaCy tags the whole
                 # name, and the particle failed the capital-letter shape.
                 continue
-            if not _VALID_TOKEN_RE.match(token):
-                return ValidationResult(
-                    self.name, passed=False, severity="hard",
-                    message=f"Token '{token}' does not match name-token shape",
-                )
-
-            letters_only = token.replace("-", "").rstrip(".")
-            is_acronym = _ACRONYM_RE.match(letters_only) or _ACRONYM_PLURAL_RE.match(letters_only)
-            # EXACT last-name lookup, deliberately not is_known_last_name():
-            # its accent-variant fallback folds "ÑËÙ" to the real surname
-            # "neu", which would let accent-stuffed all-caps garbage through
-            # this all-caps-surname exemption.
-            if is_acronym and token.lower() not in knowledge_base.last_names and not _vouched_acronym(candidate):
-                return ValidationResult(
-                    self.name, passed=False, severity="hard",
-                    message=f"Token '{token}' looks like an acronym, not a name",
-                )
-
-            irregular = _irregular_capitals(token, knowledge_base)
-            if irregular:
-                return ValidationResult(
-                    self.name, passed=False, severity="hard",
-                    message=f"Token '{token}' {irregular} - machine identifier/garbage, not a name",
-                )
+            problem = name_token_problem(token, knowledge_base, acronym_vouched)
+            if problem:
+                return ValidationResult(self.name, passed=False, severity="hard", message=f"Token '{token}' {problem}")
 
         start, end = candidate.candidate.start, candidate.candidate.end
         if _MOJIBAKE_RE.search(document_text[max(0, start - 1):end + 1]):
@@ -96,6 +76,29 @@ class StructureValidator(BaseValidator):
             )
 
         return ValidationResult(self.name, passed=True, score=0.10, message="Structure OK")
+
+
+def name_token_problem(token: str, knowledge_base: KnowledgeBase, acronym_vouched: bool = False) -> str | None:
+    """Why one token cannot be a word of a name, or None: its shape, an
+    acronym, irregular capitals. Also asked where a candidate is widened
+    (candidate_factory._name_shaped_span_around) - a span widened over such
+    a token is refused whole."""
+    if not _VALID_TOKEN_RE.match(token):
+        return "does not match name-token shape"
+
+    letters_only = token.replace("-", "").rstrip(".")
+    is_acronym = _ACRONYM_RE.match(letters_only) or _ACRONYM_PLURAL_RE.match(letters_only)
+    # EXACT last-name lookup, deliberately not is_known_last_name():
+    # its accent-variant fallback folds "ÑËÙ" to the real surname
+    # "neu", which would let accent-stuffed all-caps garbage through
+    # this all-caps-surname exemption.
+    if is_acronym and token.lower() not in knowledge_base.last_names and not acronym_vouched:
+        return "looks like an acronym, not a name"
+
+    irregular = _irregular_capitals(token, knowledge_base)
+    if irregular:
+        return f"{irregular} - machine identifier/garbage, not a name"
+    return None
 
 
 def _vouched_acronym(candidate: CandidateResult) -> bool:

@@ -16,11 +16,14 @@ from __future__ import annotations
 
 import re
 
+from src.candidate.boundary_refiner import _SUFFIX_WORD_RE
 from src.core.models import Candidate, CandidateResult, CandidateState, Detection, DetectorName
 from src.detection.dictionary_detector import _strip_possessive
+from src.detection.regex_detector import CITATION_CUE
 from src.knowledge.knowledge_base import KnowledgeBase
 from src.preprocessing.latin import LATIN_LETTERS, LATIN_UPPER
 from src.preprocessing.line_indexer import LineIndex
+from src.validation.validators.structure_validator import name_token_problem
 
 _WHITESPACE_RE = re.compile(r"\s+")
 
@@ -68,6 +71,11 @@ _PATTERN_BOUNDARY_PRIORITY = {
 
 
 def _boundary_priority(detection: Detection) -> int:
+    # A citation's layout gives the exact extent of the name ("Chi et al.",
+    # "Harris, J and Smith, K (2002)", 2026-10-12) - spaCy tagged "Chi et
+    # al" and "Harris, J" whole, and the structure check refused them.
+    if detection.metadata.get("cue") == CITATION_CUE:
+        return _PATTERN_BOUNDARY_PRIORITY["titled"]
     return _PATTERN_BOUNDARY_PRIORITY.get(detection.metadata.get("pattern", ""), 3)
 
 
@@ -178,7 +186,12 @@ def _name_shaped_span_around(best: Detection, group: list[Detection], knowledge_
     The dictionary word itself must not be a calendar word, a language or
     region name, a place or an organisation: alone those are refused later
     ("Jan", "Arab"), and inside a longer span that refusal would not apply
-    ("Bharatiya Jan Sangh")."""
+    ("Bharatiya Jan Sangh").
+
+    Nor is a word the structure check refuses a name word (2026-10-12): in a
+    case chat, a line of the shape "I am LtCol RK Verma" widened to "LtCol RK
+    Verma", which was then refused whole for "LtCol" - where the surname
+    alone had been accepted."""
     hit_words = [w.rstrip(".,;:") for w in _strip_possessive(best.text)[0].split()]
     if any(knowledge_base.is_calendar_word(w) or knowledge_base.is_language_or_region_name(w)
            or knowledge_base.is_location(w) or knowledge_base.is_organization(w) for w in hit_words):
@@ -193,7 +206,9 @@ def _name_shaped_span_around(best: Detection, group: list[Detection], knowledge_
         if not extra or len(d.text.split()) > 4:
             continue
         if not all(_INITIALS_TOKEN_RE.match(t) or (_PLAIN_NAME_WORD_RE.match(t.rstrip(".,;:"))
-                                                   and _is_plausible_name_token(t, knowledge_base)) for t in extra):
+                                                   and _is_plausible_name_token(t, knowledge_base)
+                                                   and name_token_problem(t.rstrip(".,;:"), knowledge_base) is None)
+                   for t in extra):
             continue
         if chosen is None or d.end - d.start > chosen.end - chosen.start:
             chosen = d
@@ -208,8 +223,15 @@ def is_middle_initial_name(text: str) -> bool:
     """True for 'Craig J. Mundie' / 'Mary A. B. Jones': a capitalized word,
     one or more single-letter initials each with a period, and a capitalized
     word of 2+ letters. A naming convention used for people, which is why
-    CorroborationValidator trusts it and _select_canonical_span widens to it."""
+    CorroborationValidator trusts it and _select_canonical_span widens to it.
+
+    A generational suffix after the surname belongs to the same convention
+    (2026-10-12): "William H. Gates III", signing a company's annual report
+    in a case folder, was refused because "william" is also on the
+    ordinary-word list - the suffix hid the middle-initial shape."""
     tokens = text.split()
+    if len(tokens) > 3 and _SUFFIX_WORD_RE.match(tokens[-1]):
+        tokens = tokens[:-1]
     return (len(tokens) >= 3 and bool(_NAME_WORD_RE.match(tokens[0])) and bool(_NAME_WORD_RE.match(tokens[-1]))
             and all(_INITIAL_RE.match(t) for t in tokens[1:-1]))
 

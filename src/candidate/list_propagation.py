@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from src.core.models import CandidateResult, Decision, Detection, DetectorName
-from src.detection.regex_detector import _NAME_SEQ, PERSON_CUE_PATTERN
+from src.detection.regex_detector import _CITED_AUTHOR_RE, _NAME_SEQ, CITATION_CUE, PERSON_CUE_PATTERN
 
 LIST_CUE = "list"
 LIST_CONFIDENCE = 0.75
@@ -93,13 +93,21 @@ def items_to_propagate(
     candidate overlaps it and ends where it ends ("Sri K. Venkata" and
     "K. Venkata" are the same item)."""
     accepted_ends: dict[int, list[int]] = {}
+    # Where the initials of a cited author begin ("Hawton, K. Suicide in
+    # prisoners", 2026-10-12): they belong to that author - no item of the
+    # list, though "K. Suicide" has the shape of one.
+    cited_initials: set[int] = set()
     for c in candidates:
         if c.state.decision == Decision.ACCEPTED:
             accepted_ends.setdefault(c.candidate.end, []).append(c.candidate.start)
+        if any(d.metadata.get("cue") == CITATION_CUE for d in c.candidate.source_detections):
+            author = _CITED_AUTHOR_RE.match(text, c.candidate.start)
+            if author:
+                cited_initials.add(author.start("initials"))
     out: list[ListItem] = []
     for items in find_lists(text):
         confirmed = [i for i in items if any(s < i.end for s in accepted_ends.get(i.end, ()))]
         if confirmed and len(confirmed) >= MIN_CONFIRMED_SHARE * len(items):
-            out.extend(i for i in items if i not in confirmed and not (
+            out.extend(i for i in items if i not in confirmed and i.start not in cited_initials and not (
                 is_ordinary_word is not None and len(i.text.split()) == 1 and is_ordinary_word(i.text)))
     return out

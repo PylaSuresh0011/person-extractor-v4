@@ -65,8 +65,11 @@ this pipeline.
 
 from __future__ import annotations
 
+import re
+
 from src.core.models import CandidateResult, DetectorName, ValidationResult
 from src.knowledge.knowledge_base import KnowledgeBase
+from src.preprocessing.latin import LATIN_LETTERS, LATIN_UPPER
 from src.preprocessing.segmenter import count_occurrences
 from src.validation.base_validator import BaseValidator
 from src.validation.document_case import CaseCache
@@ -75,6 +78,18 @@ from src.validation.validators.corroboration_validator import (
     _is_record_field_value,
     rare_surname_follows,
 )
+
+_PLACE_AFTER_COMMA = re.compile(rf",[ \t]*([{LATIN_UPPER}][{LATIN_LETTERS}]+(?:[ \t][{LATIN_UPPER}][{LATIN_LETTERS}]+)?)")
+
+
+def _larger_place_follows(document_text: str, end: int, knowledge_base: KnowledgeBase) -> bool:
+    """A known place right after a comma ("Chanda Nagar, India", "Santa
+    Clara, United States") - the way a town is written with its country."""
+    match = _PLACE_AFTER_COMMA.match(document_text, end)
+    if not match:
+        return False
+    place = match.group(1)
+    return knowledge_base.is_location(place) or knowledge_base.is_location(place.split()[0])
 
 
 class LocationValidator(BaseValidator):
@@ -156,11 +171,14 @@ class LocationValidator(BaseValidator):
         # that is also an ordinary word: spaCy tagged a person, in running
         # text. The rescue above looks for a first name among the OTHER
         # tokens, so a quotation's author in a textbook was rejected as
-        # the state of Virginia.
+        # the state of Virginia. Not when the larger place follows after a
+        # comma, as an address is written: "Chanda Nagar, India" came out
+        # of a case scan as a person (2026-10-12).
         if (start == 0 and end == 1 and knowledge_base.is_known_first_name(tokens[0].rstrip("."))
                 and any(d.detector == DetectorName.SPACY for d in candidate.candidate.source_detections)
                 and rare_surname_follows(candidate.candidate.normalized_text, knowledge_base, document_text, self._case)
-                and not _is_record_field_value(document_text, candidate.candidate.start)):
+                and not _is_record_field_value(document_text, candidate.candidate.start)
+                and not _larger_place_follows(document_text, candidate.candidate.end, knowledge_base)):
             return True
 
         # Repetition of the FULL candidate ("Charlotte Reyes"), not just

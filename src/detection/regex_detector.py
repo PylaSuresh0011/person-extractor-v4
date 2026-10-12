@@ -146,6 +146,40 @@ _PERSON_CUE_RES = (
     # An author line: "- Cedric Mount", "– Pydimarri Venkata Subba Rao".
     ("byline", re.compile(rf"(?m)^[ \t]*[-–—][ \t]*(?P<name>{_NAME_SEQ})[ \t]*$")),
 )
+# Citation cues (2026-10-12): the way a paper names the people it cites. A
+# reference list writes each author as surname, initials - one or more of
+# them, joined by ";", "," or "and", and closed by the year: "Abdolmohammadi,
+# M; Harris, J and Smith, K (2002), ...", "Fergusson, D.M., Woodward, L.J. &
+# Horwood, L.J. (1997)." - and "et al." after a name stands for more people.
+# In the three research papers of a case folder, 115 of the 139 cited authors
+# the scan did not accept stood in that form; a lone surname no list holds
+# was never even a candidate. The match is the surname.
+#
+# The layout has to be the document's own: at least MIN_REFERENCE_ENTRIES
+# entries closed by a year - one author alone with the year in brackets, since
+# "Sorry, I 2000 pay" in a chat is an amount. In a document that has them,
+# an author list is also one that runs to three authors or to "et al."
+# ("Fazel, S., Cartwright, J., Norman-Nott, A. & Hawton, K. Suicide in
+# prisoners"), and one author before a bare year ("Rohrman, B. 1986.").
+CITATION_CUE = "citation"
+MIN_REFERENCE_ENTRIES = 3
+# The surname may carry a suffix ("Kinney Jr, W.R"). Initials are one to four
+# letters set apart by dots, spaces or a hyphen, or two letters written
+# together - "ADAM" in "(... Monitoring Programme, ADAM, 2000)" is an acronym.
+_CITED_AUTHOR_RE = re.compile(
+    rf"(?<![{_LATIN_LETTER}'\-])(?P<name>[{LATIN_UPPER}][{_LATIN_LETTER}'\-]+(?:[ \t](?:Jr\.?|Sr\.?|II|III|IV))?),[ \t]{{0,2}}"
+    rf"(?P<initials>[{LATIN_UPPER}](?:[{LATIN_UPPER}]|(?:(?:\.[ \t]?-?|[ \t]|-)[{LATIN_UPPER}]){{1,3}})?\.?)"
+    rf"(?![{_LATIN_LETTER}])")
+_AUTHOR_JOIN_RE = re.compile(r"\s{0,3}(?:[;,]\s{0,3})?(?:and\s{1,3}|&\s{0,3})?")
+_YEAR = r"(?:1[6-9]|20)\d\d[a-z]?"
+# A PDF's text layer can space a digit off inside the brackets: "(1 999)", "(2008 )".
+_YEAR_IN_BRACKETS = r"\(\s?(?:1\s?[6-9]|2\s?0)\s?\d\s?\d[a-z]?\s?\)"
+_ET_AL_TAIL = r",?\s{0,3}et\s{1,3}al\b\.?"
+_YEAR_IN_BRACKETS_RE = re.compile(rf"(?:{_ET_AL_TAIL})?\s{{0,3}},?\s{{0,3}}{_YEAR_IN_BRACKETS}")
+_YEAR_AFTER_AUTHORS_RE = re.compile(
+    rf"(?:{_ET_AL_TAIL})?\s{{0,3}}[.,]?\s{{0,3}}(?:{_YEAR_IN_BRACKETS}|{_YEAR}(?!\d))")
+_ET_AL_AFTER_AUTHORS_RE = re.compile(rf"(?:\s{{0,3}},\s{{0,3}}{_NAME_SEQ})?{_ET_AL_TAIL}")
+_ET_AL_RE = re.compile(rf"(?P<name>{_NAME_SEQ})[ \t]+et[ \t]+al\b")
 # "Nasser of Egypt, Sukarno of Indonesia" - a name "of" a country (kept
 # when is_place says the right-hand side is one).
 _OF_COUNTRY_RE = re.compile(rf"(?P<name>{_NAME_SEQ})[ \t]+of[ \t]+(?P<place>[A-Z][a-z]+(?:[ \t][A-Z][a-z]+)?)")
@@ -246,6 +280,7 @@ class RegexDetector(BaseDetector):
             if (len(lines) >= MIN_SPEAKER_LINES and not any(_looks_like_data(s) for s in speeches)
                     and any(_SPEECH_WORD.search(s) for s in speeches)):
                 detections.extend(self._cue_detection(m, "name", "speaker", page_index) for m in lines)
+        detections.extend(self._cue_detection(m, "name", CITATION_CUE, page_index) for m in _cited_people(text))
 
         return detections
 
@@ -271,6 +306,25 @@ class RegexDetector(BaseDetector):
     def _overlaps(span: tuple[int, int], others: list[tuple[int, int]]) -> bool:
         start, end = span
         return any(not (end <= o_start or start >= o_end) for o_start, o_end in others)
+
+
+def _cited_people(text: str) -> list[re.Match]:
+    """Matches whose "name" group is a cited person: a name before "et al.",
+    and every author of a reference-list entry - see CITATION_CUE."""
+    cited = list(_ET_AL_RE.finditer(text))
+    entries: list[list[re.Match]] = []
+    for author in _CITED_AUTHOR_RE.finditer(text):
+        if entries and _AUTHOR_JOIN_RE.fullmatch(text, entries[-1][-1].end(), author.start()):
+            entries[-1].append(author)
+        else:
+            entries.append([author])
+    closed = [entry for entry in entries
+              if (_YEAR_AFTER_AUTHORS_RE if len(entry) > 1 else _YEAR_IN_BRACKETS_RE).match(text, entry[-1].end())]
+    if len(closed) >= MIN_REFERENCE_ENTRIES:
+        cited.extend(author for entry in entries for author in entry
+                     if len(entry) >= 3 or _YEAR_AFTER_AUTHORS_RE.match(text, entry[-1].end())
+                     or (len(entry) > 1 and _ET_AL_AFTER_AUTHORS_RE.match(text, entry[-1].end())))
+    return cited
 
 
 def _looks_like_data(speech: str) -> bool:

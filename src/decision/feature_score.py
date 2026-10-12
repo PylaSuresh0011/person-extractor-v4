@@ -39,7 +39,7 @@ from collections import defaultdict
 
 from src.candidate.name_propagation import DOCUMENT_NAME_PATTERN
 from src.core.models import CandidateResult, Decision, DetectorName
-from src.detection.regex_detector import PERSON_CUE_PATTERN
+from src.detection.regex_detector import CITATION_CUE, PERSON_CUE_PATTERN
 from src.knowledge.knowledge_base import KnowledgeBase
 from src.validation.document_case import lowercase_uses, mid_sentence_capitalised_uses
 from src.validation.validators.entity_type_validator import MIN_LOWERCASE_USES, _in_quoted_title
@@ -81,6 +81,11 @@ def person_features(group: list[CandidateResult], document_text: str, knowledge_
     # mid-sentence - one stray lowercase "savitri" is no evidence.
     ordinary_by_case = single and bool(words) and lowercase >= MIN_LOWERCASE_USES and (
         lowercase >= mid_sentence_capitalised_uses(words[0], document_text))
+    # A name the owner confirmed (assets/owner_decisions/confirmed_names.txt)
+    # takes no negative feature: "Siri", beside "siri call $CONTACTS", passed
+    # the entity-type validator by that decision and was then dropped by its
+    # score (2026-10-12).
+    confirmed = group[0].candidate.normalized_text.lower() in knowledge_base.confirmed_names
     return {
         "title": "titled" in patterns or len(body) < len(tokens),
         # Initials before a name ("A.B. Vajpayee", "K.V. Ranga Reddy") - round 3.
@@ -95,16 +100,24 @@ def person_features(group: list[CandidateResult], document_text: str, knowledge_
         "first_name_list": bool(words) and knowledge_base.is_known_first_name(words[0]),
         "spacy": any(d.detector == DetectorName.SPACY for d in detections),
         "repeated": len(group) >= 3,
-        "lowercase_use": ordinary_by_case,
+        "lowercase_use": ordinary_by_case and not confirmed,
         # common_english_words.txt lists many first names ("henry", "ray") -
-        # an ordinary word here is one the first-name list doesn't know.
-        "ordinary_word": single and bool(words) and knowledge_base.is_common_word(words[0])
-                         and not knowledge_base.is_known_first_name(words[0]),
+        # an ordinary word here is one the first-name list doesn't know. It
+        # lists surnames too ("watson", "wright"): a surname this document
+        # capitalises inside a sentence and never writes in lowercase is
+        # none either - cited authors in a case folder's research papers
+        # fell from accepted to review (2026-10-12).
+        # Nor is a cited author ("Brown, D; Beach, L.R and Stone, D.N (1991)").
+        "ordinary_word": single and bool(words) and knowledge_base.is_common_word(words[0]) and not confirmed
+                         and CITATION_CUE not in cues
+                         and not knowledge_base.is_known_first_name(words[0])
+                         and not (knowledge_base.is_known_last_name(words[0]) and lowercase == 0
+                                  and mid_sentence_capitalised_uses(words[0], document_text) > 0),
         # As the entity-type validator counts it: quoted as a title in at
         # least a third of its mentions - one quoted contact field in a chat
         # export ('"Priya"') says nothing (benchmark_real_660, 2026-10-01).
-        "quoted_title": 3 * sum(_in_quoted_title(document_text, c.candidate.start, c.candidate.end)
-                                for c in group) >= len(group),
+        "quoted_title": not confirmed and 3 * sum(_in_quoted_title(document_text, c.candidate.start, c.candidate.end)
+                                                  for c in group) >= len(group),
         "_cues": sorted(c for c in cues if c),
     }
 
