@@ -208,14 +208,18 @@ class RegexDetector(BaseDetector):
     CUE_CONFIDENCE = 0.85
 
     def __init__(self, is_ordinary_word: Callable[[str], bool] | None = None,
-                 is_place: Callable[[str], bool] | None = None) -> None:
+                 is_place: Callable[[str], bool] | None = None,
+                 is_organization: Callable[[str], bool] | None = None) -> None:
         self.is_place = is_place
         # A cue before ordinary words is no person cue: "Dear Student,",
         # "Mother : Money, money" (a play's speaker label, not "Father: Frank
         # Hawking"), speaker labels "Study Skills :" - skipped when this check
         # is given (DetectorManager passes the knowledge base's). Contractions
-        # ("Mother : Didn't you hear?") always are.
+        # ("Mother : Didn't you hear?") always are. Nor is one before an
+        # organisation's name and ordinary words (2026-10-12): "Dear Zomato
+        # Customer Service," made that phrase a person, 26 times in a case.
         self.is_ordinary_word = is_ordinary_word
+        self.is_organization = is_organization
 
     def detect(self, text: str, page_index: int) -> list[Detection]:
         if not text:
@@ -266,7 +270,7 @@ class RegexDetector(BaseDetector):
                         detections.append(self._cue_detection(match, group, cue, page_index))
         if self.is_place is not None:
             for m in _OF_COUNTRY_RE.finditer(text):
-                if self.is_place(m.group("place")) and not self._ordinary_label(m.group("name")):
+                if self.is_place(m.group("place")) and not self._no_person_of_a_place(m.group("name")):
                     detections.append(self._cue_detection(m, "name", "of_country", page_index))
         for m in _NAME_X_RE.finditer(text):
             if not self._ordinary_label(m.group("name").split()[0]):
@@ -288,7 +292,20 @@ class RegexDetector(BaseDetector):
         words = label.split()
         if any(_CONTRACTION_END.search(w) for w in words):
             return True
-        return self.is_ordinary_word is not None and all(self.is_ordinary_word(w.rstrip(".")) for w in words)
+        return self.is_ordinary_word is not None and all(
+            self.is_ordinary_word(w.rstrip("."))
+            or (self.is_organization is not None and self.is_organization(w.rstrip("."))) for w in words)
+
+    def _no_person_of_a_place(self, name: str) -> bool:
+        """ "X of <country>" names a person when X is a name ("Nasser of
+        Egypt") - not an abbreviation ("Govt. of India"), a phrase with an
+        ordinary word in it ("Population Pyramid of India") or a plural
+        ("the Garhwal Himalayas of Uttarakhand"), 2026-10-12."""
+        words = name.split()
+        last = words[-1]
+        return (name.endswith(".")
+                or (len(last) > 3 and last.endswith("s") and not last.endswith(("ss", "us", "is")))
+                or (self.is_ordinary_word is not None and any(self.is_ordinary_word(w.rstrip(".")) for w in words)))
 
     def _cue_detection(self, match: re.Match, group: str, cue: str, page_index: int) -> Detection:
         raw = match.group(group)

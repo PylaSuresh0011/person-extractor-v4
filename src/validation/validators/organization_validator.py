@@ -76,4 +76,19 @@ class OrganizationValidator(BaseValidator):
                 message=f"'{candidate.candidate.normalized_text}' matches known organization",
             )
 
+        # A known organisation with nothing but ordinary words beside it is
+        # its department or product (2026-10-12): "Zomato Customer Service"
+        # was the most repeated wrong name of a case scan. A name word beside
+        # it ("Ratan Tata") leaves the candidate alone.
+        words = [t.rstrip(".,") for t in tokens]
+        organizations = [w for w in words if knowledge_base.is_organization(w)]
+        if organizations and len(words) > 1 and all(
+                w in organizations or (knowledge_base.is_common_word(w) and (
+                    not knowledge_base.is_known_first_name(w) or knowledge_base.is_ambiguous_first_name(w)))
+                for w in words):
+            return ValidationResult(
+                self.name, passed=False, severity="hard",
+                message=f"The organization '{organizations[0]}' with only ordinary words - its department or product",
+            )
+
         return ValidationResult(self.name, passed=True, score=0.0, message="No organization keywords")

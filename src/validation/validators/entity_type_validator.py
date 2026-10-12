@@ -63,6 +63,19 @@ majority of the name's mentions where it says so:
                   "Coastal Andhra"), or a name and a geography word
                   ("Andhra Region", "Peninsular Rivers")
 
+2026-10-12 (the wrong names of three textbooks and a case folder, each
+traced to the evidence that accepted it) - these look at the one mention:
+  article         a single word right after "the", "a" or "an", also across
+                  the break of a wrapped line ("the Guinness Book", "the
+                  Kailash range", "a Rajput woman", "to the / Moon")
+  place_context   also: a single word right after "in" or "at" ("In Ajmer,",
+                  "in Jordon") - "to", "from" and "for" go before people too
+  place_alias     in brackets right after a known place ("Cape Verde (Kabu
+                  Verdi)", in a web page's list of countries)
+  lowercase       also: a phrase no name list knows a word of, when every
+                  word of it passes the lowercase test ("Suicidal Tendency"
+                  in a paper that writes both words in lowercase)
+
 The word lists live in assets/entity_cues/. The lowercase, place_context and
 the rules let a mention through when a title or a relation word comes just
 before it ("Mr. Read", "his wife Rose") or a speech verb just after it
@@ -88,6 +101,14 @@ _SPEECH_AFTER = re.compile(
     r"^[ \t]*,?[ \t]*(?:said|says|asked|asks|replied|answered|told|shouted|cried|whispered|exclaimed)\b")
 _ALIAS_BEFORE = re.compile(r"\b(?:called|known as|named|nicknamed|alias)[ \t]*$", re.IGNORECASE)
 _THE_BEFORE = re.compile(r"\b[Tt]he[ \t]+$")
+# An article right before the name - also across the break of a wrapped line:
+# no sentence ends on "the". Not a capital "A", which is also an initial
+# ("A Ramesh").
+_ARTICLE_BEFORE = re.compile(r"\b(?:[Tt]he|an?)(?:[ \t]+|[ \t]*\n[ \t]*)$")
+# "in" and "at" say where; "to", "from" and "for" go before people as well.
+_LOCATED_BEFORE = re.compile(r"\b(?:[Ii]n|[Aa]t)(?:[ \t]+|[ \t]*\n[ \t]*)$")
+# "Cape Verde (Kabu Verdi)", "Montenegro (Crna Gora)" - a place, then its other name.
+_PLACE_NAMED_BEFORE = re.compile(r"(?<![A-Za-z])([A-Z][A-Za-z]+(?:[ \t][A-Z][A-Za-z]+){0,2})[ \t]?\($")
 _PLACE_BEFORE = re.compile(r"\b(?:in|at|from|to|for|near|towards|via|reached|visited)[ \t]+$", re.IGNORECASE)
 _YEAR_AFTER = re.compile(r"^[ \t]*\((?:1[5-9]|20)\d\d\)")
 _NEXT_WORD = re.compile(r"^[ \t]+([A-Za-z]+)\.?")
@@ -105,7 +126,7 @@ _PERSON_GROUP = re.compile(r"^(?:brothers|sisters)$", re.IGNORECASE)
 ALL_CUES = frozenset({
     "lowercase", "vocabulary", "kinship", "contraction", "section_header", "place_suffix",
     "place_next", "year", "place_context", "quoted", "the", "group",
-    "title_only", "time_words", "org_head", "geo", "region",
+    "title_only", "time_words", "org_head", "geo", "region", "article", "place_alias",
 })
 _COMPASS = frozenset("north south east west northern southern eastern western central upper lower coastal".split())
 # Right before a name ("the river Ravi", "cyclone Aila"), or before "of
@@ -212,6 +233,9 @@ class EntityTypeValidator(BaseValidator):
                                                 f"{context['n']} mentions")
             # Initials or a title before a name make it a person, whatever
             # the rest matches ("K.V. Ranga Reddy" - Ranga Reddy is a district).
+            # More than half, not half (measured again 2026-10-12): the river
+            # Krishna is geographic in 5 of its 10 mentions in one textbook -
+            # and in another, "Krishna" is a district twice and the god twice.
             if ("geo" in cues and not any(knowledge_base.is_title(w) or knowledge_base.is_honorific(w) for w in words)
                     and not any(_ROMAN_OR_LETTER.match(t) or _JOINED_INITIALS.match(t) for t in tokens)
                     and 2 * context["geo"] > context["n"]):
@@ -224,6 +248,17 @@ class EntityTypeValidator(BaseValidator):
                 return self._reject(
                     "lowercase", f"'{tokens[0]}' is used {lowercase}x in lowercase in this document "
                                  f"(capitalised mid-sentence {mid_sentence}x) - an ordinary word")
+        # The same test for a phrase no list knows a word of (2026-10-12):
+        # when the document writes every word of it in lowercase too, the
+        # capitals are a heading's - a research paper's "Suicidal Tendency"
+        # was accepted 12 times in a case; neither word is on the
+        # ordinary-word list. A name word in it ("Mark Brown") exempts it.
+        if "lowercase" in cues and not single and not strong_context and not any(
+                knowledge_base.is_known_first_name(w) or knowledge_base.is_known_last_name(w) for w in words):
+            uses = [self._case_uses(t.rstrip("."), document_text) for t in tokens]
+            if all(lowercase >= MIN_LOWERCASE_USES and lowercase >= mid_sentence for lowercase, mid_sentence in uses):
+                return self._reject("lowercase", "every word of it is also written in lowercase in this document "
+                                                 "- ordinary words in a heading's capitals")
         if {"quoted", "place_context", "the"} & cues:
             form = self._form_uses(tokens, document_text)
             if "quoted" in cues and form["quoted"] and 3 * form["quoted"] >= form["n"]:
@@ -237,6 +272,16 @@ class EntityTypeValidator(BaseValidator):
                     return self._reject("the", f"follows 'the' in {form['the']} of its {form['n']} mentions")
                 if single and _THE_BEFORE.search(before) and _is_plural(tokens[0]):
                     return self._reject("the", f"'the {tokens[0]}' - a plural, a family or group")
+        # The mention itself (2026-10-12) - see the module docstring.
+        if "article" in cues and single and not strong_context and _ARTICLE_BEFORE.search(before):
+            return self._reject("article", f"'{tokens[0]}' follows an article here - a thing or a group, not a person")
+        if "place_context" in cues and single and not strong_context and _LOCATED_BEFORE.search(before) and (
+                after[:2] not in ("'s", "’s")):
+            return self._reject("place_context", f"'{tokens[0]}' follows 'in' or 'at' here - where, not who")
+        if "place_alias" in cues:
+            named = _PLACE_NAMED_BEFORE.search(before)
+            if named and after.startswith(")") and knowledge_base.is_location(named.group(1)):
+                return self._reject("place_alias", f"another name of '{named.group(1)}', in brackets after it")
         return self._pass()
 
     def _case_uses(self, word: str, text: str) -> tuple[int, int]:

@@ -545,14 +545,14 @@ afternoon's score decisions (round 3) and with the 2026-10-07 rules. Same
 --no-llm-review`), scored against the names read from the folder by hand on
 2026-10-06 (`output/manual_review/`).
 
-| | 2026-10-01 | 2026-10-12, first scan | after the six fixes | with the citation rule | with `report.xml` read |
-|---|---|---|---|---|---|
-| hand-read names ACCEPTED (of 365) | 182 | 178 | 184 | 285 | 288 |
-| in REVIEW | 50 | 21 | 18 | 15 | 16 |
-| missed | 133 | 166 | 163 | 65 | 61 |
-| case people found (of 16) | 12 | 11 | 12 | 12 | 14 |
-| accepted rows / matching no hand-read name | 253 / 55 | 243 / 50 | 250 / 50 | 355 / 53 | 360 / 54 |
-| review rows | 316 | 88 | 83 | 80 | 87 |
+| | 2026-10-01 | 2026-10-12, first scan | after the six fixes | with the citation rule | with `report.xml` read | with the wrong-name rules |
+|---|---|---|---|---|---|---|
+| hand-read names ACCEPTED (of 365) | 182 | 178 | 184 | 285 | 288 | 288 |
+| in REVIEW | 50 | 21 | 18 | 15 | 16 | 16 |
+| missed | 133 | 166 | 163 | 65 | 61 | 61 |
+| case people found (of 16) | 12 | 11 | 12 | 12 | 14 | 14 |
+| accepted rows / matching no hand-read name | 253 / 55 | 243 / 50 | 250 / 50 | 355 / 53 | 360 / 54 | 357 / 51 |
+| review rows | 316 | 88 | 83 | 80 | 87 | 85 |
 
 The score decisions had never been run on this folder. They cut the review
 list from 316 rows to 88, and 34 of the rows they dropped are hand-read
@@ -616,6 +616,47 @@ names no list holds, saved as contacts ("<name> Fraud"); a contact's name
 field alone is not taken as evidence of a person - the same address book
 holds "Blinkit Cs", "Otp Spam" and some hundred other service numbers.
 
+**Wrong names (`tests/test_wrong_name_rules.py`).** Every accepted row that
+is no person - in the three textbooks and in the case - was traced to the
+evidence that had accepted it. Most are a single listed name word standing
+once in a phrase that names something else ("the Guinness Book", "Nehru
+Place", "the Kailash range"): the engine accepts it, "never written in
+lowercase" - true of any word seen once - lifts it over the line. Kept, each
+measured on the three books, the benchmark and the case; no list changed:
+
+| Rule | Removes |
+|---|---|
+| `EntityTypeValidator` article: a single word right after "the", "a" or "an", also across a wrapped line | "the Guinness Book", "the Booker Award", "the Kailash range", "a Rajput woman", "to the / Moon" - 17 rows in the three books |
+| `EntityTypeValidator` place_context: a single word right after "in" or "at" (one mention is enough; "to", "from", "for" go before people too) | "In Ajmer,", "in Jordon", "in Sandur" |
+| `EntityTypeValidator` place_alias: in brackets right after a known place | "Montenegro (Crna Gora)" in a web page's list of countries |
+| `EntityTypeValidator` lowercase, for a phrase no name list knows a word of: every word is also written in lowercase in the document | "Suicidal Tendency", 12 times in the case - neither word is on the ordinary-word list |
+| `OrganizationValidator`: a known organisation and only ordinary words | "Zomato Customer Service", 26 times in the case |
+| `RegexDetector` cues: no salutation cue before an organisation and ordinary words; "X of <country>" only for a name - not an abbreviation, a plural or a phrase with an ordinary word | "Dear Zomato Customer Service,", "Govt. of India", "Population Pyramid of India", "Garhwal Himalayas of Uttarakhand" |
+
+Accepted precision, recall unchanged everywhere: 10th English 88.0 -> 89.4%,
+10th Social 72.4 -> 75.6%, 9th English 86.2 -> 87.9%; benchmark unchanged
+(0.9649 / 0.9064). 23 rows gone - 22 wrong or cut off, and "Shakuntala" from
+the review list ("the Shakuntala of our school", a comparison). Case: three
+wrong accepted names gone (39 mentions), nothing real touched. 375 tests.
+
+Tried and taken out, by the numbers:
+- a single word followed by a capitalised ordinary word as the name of a
+  thing ("Manohar Publishers", "Morse Code") - six wrong textbook rows, but
+  a chat export writes "Devraj Bhatt We should coordinate": benchmark
+  accepted recall 0.9064 -> 0.8742;
+- no "never written in lowercase" credit for a word seen once - 7 wrong rows
+  out of the accepted names, and 9 right ones (four people);
+- a place at exactly half of its mentions geographic - the river Krishna (5
+  of 10) in one book, the god Krishna beside a district (2 of 4) in another.
+
+What is left is mostly not for a rule. In the Social book 14 of the 53
+accepted "non-names" are people the provisional key has no row for (the
+credits page's "Sri P. Anjaneyulu", Sunderlal Bahuguna, Yahya Khan) -
+counted as right, its precision is 80.4%; most of the rest are rivers and
+places that are first names too ("Kashmir" 21 times, "Ravi" - also a person
+in that book), which the LLM reviewer reads from their sentences (79.9%
+against 69.9% on 2026-10-01).
+
 Six rule changes for the other names lost or wrongly added - no list changed:
 
 | Rule | What it did | Now |
@@ -648,7 +689,8 @@ under the score line (the citation rule gives "Laswad"). The four scans took
 15.4 to 17.2 minutes against 14.2 on 2026-10-01 (17.7 with `report.xml`);
 not looked into. Outputs under `output/self_upgrade/`: `rules_20261012` (first
 scan), `rules_20261012b` (the six fixes), `rules_20261012d` (with the citation
-rule), `rules_20261012e` (with `report.xml` - the last column). 365 tests.
+rule), `rules_20261012e` (with `report.xml`), `rules_20261012f` (with the
+wrong-name rules - the last column). 375 tests.
 
 **2026-10-07 - names the rules dropped or cut short (a third textbook).**
 A 194-page Class IX English textbook, hand-read: 123 people; the run of
