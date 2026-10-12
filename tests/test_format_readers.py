@@ -84,6 +84,42 @@ def test_xml_reads_attributes_and_text_and_survives_malformed_input(tmp_path):
     assert "Shawn Delaney" in _read(bad).full_text
 
 
+UFED_REPORT = """<?xml version="1.0" encoding="utf-8"?>
+<project id="1" name="phone" reportVersion="7.48" xmlns="http://pa.cellebrite.com/report/2.0">
+  <taggedFiles><file fs="x" path="/data/Hidden Person.db"><metadata><item name="Owner">Hidden Person</item></metadata></file></taggedFiles>
+  <decodedData>
+    <modelType type="Contact">
+      <model type="Contact" id="a1" deleted_state="Intact">
+        <field name="UserMapping" type="DecodingSourceOptions"><value type="DecodingSourceOptions"><![CDATA[Decoding]]></value></field>
+        <field name="Name" type="String"><value type="String"><![CDATA[Trevor Higgins]]></value></field>
+        <multiModelField name="Entries" type="ContactEntry">
+          <model type="PhoneNumber" id="a2"><field name="Category" type="String"><value type="String"><![CDATA[Mobile]]></value></field>
+            <field name="Value" type="String"><value type="String"><![CDATA[+14045550101]]></value></field></model>
+          <model type="PhoneNumber" id="a3"><field name="Category" type="String"><value type="String"><![CDATA[Mobile]]></value></field>
+            <field name="Value" type="String"><value type="String"><![CDATA[+14045550101]]></value></field></model>
+        </multiModelField>
+      </model>
+    </modelType>
+    <modelType type="Call">
+      <model type="Call" id="b1">
+        <field name="TimeStamp" type="TimeStamp"><value type="TimeStamp">2024-11-27T12:30:53</value></field>
+        <multiModelField name="Parties" type="Party"><model type="Party" id="b2">
+          <field name="Name" type="String"><value type="String">Marcus Delaney</value></field>
+          <field name="IsPhoneOwner" type="Boolean"><value type="Boolean">False</value></field></model></multiModelField>
+      </model>
+    </modelType>
+  </decodedData>
+</project>"""
+
+
+def test_ufed_report_is_read_one_decoded_record_per_line(tmp_path):
+    """Not a line for every id, state and file node: the text values of each
+    record, a repeated value once - and the listing of files is left out."""
+    path = tmp_path / "report.xml"
+    path.write_text(UFED_REPORT, encoding="utf-8")
+    assert _read(path).full_text.split("\n") == ["Trevor Higgins | Mobile | +14045550101", "Marcus Delaney"]
+
+
 def _write_docx(path: Path) -> None:
     w = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
 

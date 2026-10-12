@@ -415,10 +415,11 @@ python scripts/scan_directory.py --input-dir "C:\path\to\case_folder" --exclude 
 `--exclude` (repeatable) skips files whose name or path relative to
 `--input-dir` matches a glob, case-insensitively. Excluded files still get
 a row in the per-file CSV (`skipped: excluded by --exclude <pattern>`) and a
-`files_excluded` count in the summary. Typical use: a forensic tool's own
-aggregate report (e.g. ProDiscover's 68 MB `report.xml`, a copy of evidence
-already scanned file by file - it took 29 of 44 minutes on a real case and
-added only duplicate or noisy names).
+`files_excluded` count in the summary. Typical use: a large aggregate file
+that only copies evidence already scanned file by file. A Cellebrite UFED
+`report.xml` no longer needs it (2026-10-12): it is read record by record in
+about a minute and a half, where it took 29 of 44 minutes - and it is the only
+place a phone's address book stands.
 
 Runs across `--workers` processes by default (one per CPU core), each
 with its own loaded spaCy model + classifier - not one shared Pipeline,
@@ -544,14 +545,14 @@ afternoon's score decisions (round 3) and with the 2026-10-07 rules. Same
 --no-llm-review`), scored against the names read from the folder by hand on
 2026-10-06 (`output/manual_review/`).
 
-| | 2026-10-01 | 2026-10-12, first scan | after the six fixes | with the citation rule |
-|---|---|---|---|---|
-| hand-read names ACCEPTED (of 365) | 182 | 178 | 184 | 285 |
-| in REVIEW | 50 | 21 | 18 | 15 |
-| missed | 133 | 166 | 163 | 65 |
-| case people found (of 16) | 12 | 11 | 12 | 12 |
-| accepted rows / matching no hand-read name | 253 / 55 | 243 / 50 | 250 / 50 | 355 / 53 |
-| review rows | 316 | 88 | 83 | 80 |
+| | 2026-10-01 | 2026-10-12, first scan | after the six fixes | with the citation rule | with `report.xml` read |
+|---|---|---|---|---|---|
+| hand-read names ACCEPTED (of 365) | 182 | 178 | 184 | 285 | 288 |
+| in REVIEW | 50 | 21 | 18 | 15 | 16 |
+| missed | 133 | 166 | 163 | 65 | 61 |
+| case people found (of 16) | 12 | 11 | 12 | 12 | 14 |
+| accepted rows / matching no hand-read name | 253 / 55 | 243 / 50 | 250 / 50 | 355 / 53 | 360 / 54 |
+| review rows | 316 | 88 | 83 | 80 | 87 |
 
 The score decisions had never been run on this folder. They cut the review
 list from 316 rows to 88, and 34 of the rows they dropped are hand-read
@@ -598,6 +599,23 @@ reference list also names publishers' towns), "Young" (stopword), "Stock"
 the third paper's reference list, initials first ("A. Castaing"), which
 leaves 11 in REVIEW.
 
+**The phone report, record by record (`xml_reader.py`).** Four of the case's
+sixteen people stand only in the phone's address book, and that exists only
+in the Cellebrite UFED `report.xml` - left out of every scan because it took
+29 of 44 minutes: read like any XML, its 66 MB became a line for every id,
+state and hash attribute. It is now read as what it is - one line per decoded
+record (a contact, a call, a chat), holding the record's text values like a
+CSV row; flags, timestamps and the listing of the extraction's files are not
+text. 1.5 MB of text, 91 seconds on one worker, and the scan no longer
+excludes it (last column above). Two of the four people are accepted now,
+and one more hand-read name (a page title in the browser history). The cost:
+one wrong accepted row (a dam, the name of a saved location) and seven review
+rows (single words the keyboard learned, and an e-mail folder, "Outbox"). The
+other two people are single
+names no list holds, saved as contacts ("<name> Fraud"); a contact's name
+field alone is not taken as evidence of a person - the same address book
+holds "Blinkit Cs", "Otp Spam" and some hundred other service numbers.
+
 Six rule changes for the other names lost or wrongly added - no list changed:
 
 | Rule | What it did | Now |
@@ -627,9 +645,10 @@ the document only ever capitalises - "Learning" twice, in a list of skills),
 Oct" (a month before a date taken into the name), "H.E.M. North Am" (an OCR
 chart legend). "Fawzi Laswad" now passes the organisation check and falls
 under the score line (the citation rule gives "Laswad"). The four scans took
-15.4 to 17.2 minutes against 14.2 on 2026-10-01; not looked into. Outputs
-under `output/self_upgrade/`: `rules_20261012` (first scan), `rules_20261012b`
-(the six fixes), `rules_20261012d` (with the citation rule - the last column).
+15.4 to 17.2 minutes against 14.2 on 2026-10-01 (17.7 with `report.xml`);
+not looked into. Outputs under `output/self_upgrade/`: `rules_20261012` (first
+scan), `rules_20261012b` (the six fixes), `rules_20261012d` (with the citation
+rule), `rules_20261012e` (with `report.xml` - the last column). 365 tests.
 
 **2026-10-07 - names the rules dropped or cut short (a third textbook).**
 A 194-page Class IX English textbook, hand-read: 123 people; the run of
