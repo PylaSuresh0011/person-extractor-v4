@@ -182,3 +182,22 @@ def test_with_the_score_gate_the_class_moves_the_score_and_overrides_are_logged(
     assert ravi.state.person_score < 0.75 and ravi.state.decision != Decision.ACCEPTED
     assert reviewer.overrides and reviewer.overrides[0]["class"] == "PLACE"
     assert reviewer.overrides[0]["from"] == "accepted"
+
+
+def test_a_cited_author_is_never_lowered(monkeypatch):
+    """The model reads a reference list's line of surnames and initials as
+    an organisation; the citation layout already names the person."""
+    monkeypatch.setattr(llm.LlmReviewer, "classify",
+                        lambda self, name, sentences: {c: (0.84 if c == "ORG" else 0.02) for c in llm.CLASSES})
+    reviewer = llm.LlmReviewer(SETTINGS, BASE_DIR / "assets")
+    text = "Mueser, K., Yarnold, P. & Bellack, A. (1986). Positive and negative symptoms. Yarnold Ltd is a firm."
+    cited = _cand("Yarnold", text.index("Yarnold"), Decision.ACCEPTED)
+    cue = Detection(text="Yarnold", start=cited.candidate.start, end=cited.candidate.end, page_index=0,
+                    detector=DetectorName.REGEX, confidence=0.85, metadata={"pattern": "person_cue", "cue": "citation"})
+    cited = CandidateResult(candidate=Candidate.new("Yarnold", "Yarnold", cue.start, cue.end, 0, (cue,)), state=cited.state)
+    cited.state.person_score = 0.89
+    firm = _cand("Bellack", text.index("Bellack"), Decision.ACCEPTED)    # no citation cue: lowered as before
+    firm.state.person_score = 0.89
+    reviewer.review([cited, firm], text, score_gate=True)
+    assert cited.state.person_score == 0.89 and cited.state.decision == Decision.ACCEPTED
+    assert firm.state.person_score < 0.89 and firm.state.decision != Decision.ACCEPTED

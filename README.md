@@ -657,6 +657,31 @@ places that are first names too ("Kashmir" 21 times, "Ravi" - also a person
 in that book), which the LLM reviewer reads from their sentences (79.9%
 against 69.9% on 2026-10-01).
 
+**The same scan with the LLM reviewer on** (Llama 3.1 8B, 58% of it on the
+CPU - the model is larger than the 4 GB card; 27.5 minutes against 18):
+
+| | rules only | LLM reviewer, first run | LLM reviewer, cited authors kept |
+|---|---|---|---|
+| hand-read names ACCEPTED (of 365) | 288 | 271 | 298 |
+| in REVIEW / missed | 16 / 61 | 15 / 79 | 8 / 59 |
+| accepted rows / matching no hand-read name | 357 / 51 | 318 / 26 | 345 / 26 |
+| review rows | 85 | 32 | 24 |
+
+The reviewer took 30 wrong names out of the accepted rows ("Turk Telekom",
+"Deep Learning", "Tea Tre", "Nehru" of "Nehru Place", "Prentice", "John
+Wiley", "Nagarjuna Sagar Dam") - the single words out of longer phrases that
+no rule could take without hurting chat text - and accepted 17 hand-read
+names the rules had missed or held for review. But on its first run it
+dropped 24 hand-read names and sent 10 to review, nearly all of them cited
+authors: given "Mueser, K., [[Yarnold]] , P. & Bellack, A." it answered ORG
+0.84. A name with the citation cue is no longer lowered by the reviewer
+(`llm_reviewer._cited`), as an owner-confirmed name is not. With that, the
+reviewer is better than the rules alone on both counts: 298 of 365 hand-read
+names accepted (81.6% against 78.9%), and 319 of 345 accepted rows on the
+hand-read list (92.5% against 85.7%). It still loses four names the rules
+accept ("Andrada", "Mclean Iqc", "Berger", "Bach"). Outputs:
+`rules_20261012g_llm`, `rules_20261012h_llm`. 376 tests.
+
 Six rule changes for the other names lost or wrongly added - no list changed:
 
 | Rule | What it did | Now |

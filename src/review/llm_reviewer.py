@@ -67,6 +67,7 @@ from pathlib import Path
 
 from src.core.models import CandidateResult, Decision
 from src.decision.feature_score import REVIEW_AT, decision_for
+from src.detection.regex_detector import CITATION_CUE
 from src.utils.logger import get_logger
 
 logger = get_logger("review.llm_reviewer")
@@ -205,6 +206,15 @@ def resolve_status(settings: dict) -> ReviewerStatus:
         return ReviewerStatus(False, f"off (Ollama error: {exc})")
 
 
+def _cited(group: list[CandidateResult]) -> bool:
+    """A cited author (the regex detector's citation cue) is never lowered
+    (2026-10-12). The layout of a reference list names its people exactly;
+    the model, given "Mueser, K., [[Yarnold]] , P. & Bellack, A.", answered
+    ORG 0.84 - on a case scan it dropped 24 hand-read names this way, nearly
+    all of them cited authors."""
+    return any(d.metadata.get("cue") == CITATION_CUE for c in group for d in c.candidate.source_detections)
+
+
 def _load_names(path: Path) -> frozenset[str]:
     if not path.exists():
         return frozenset()
@@ -305,8 +315,8 @@ class LlmReviewer:
             top = max(probs, key=probs.get)
             old = group[0].state.person_score
             delta = (self.score_weight if p >= 0.5 else self.score_weight_down) * (2 * p - 1)
-            if delta < 0 and name.lower() in self.confirmed_names:
-                delta = 0.0  # an owner decision ("Siri")
+            if delta < 0 and (name.lower() in self.confirmed_names or _cited(group)):
+                delta = 0.0  # an owner decision ("Siri"), or a cited author - see _cited
             new = round(min(1.0, max(0.0, old + delta)), 2)
             old_decision, new_decision = decision_for(old), decision_for(new)
             label = f"LLM reviewer: {top} {probs[top]:.2f}, P(person) {p:.2f}; score {old:.2f} -> {new:.2f} ({tag})"
@@ -348,7 +358,7 @@ class LlmReviewer:
                                "remaining files keep their rule-based decisions", exc)
                 return
             if decision == Decision.ACCEPTED and self.demote_below is not None and p < self.demote_below \
-                    and name.lower() not in self.confirmed_names:
+                    and name.lower() not in self.confirmed_names and not _cited(group):
                 for c in group:
                     c.state.decision = Decision.REVIEW
                     c.state.rejection_reason = (f"LLM reviewer: P(person) {p:.2f} is below {self.demote_below} "
