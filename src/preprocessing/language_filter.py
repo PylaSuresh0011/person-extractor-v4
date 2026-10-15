@@ -50,6 +50,25 @@ MIN_WORDS_FOR_LANGUAGE_CHECK = 30
 # See module docstring for how this was calibrated.
 ENGLISH_WORD_RATIO_THRESHOLD = 0.15
 
+# English that is not prose (2026-10-12). A screenshot of an app screen -
+# labels, titles and people's names - has few function words: one in a case
+# folder stood at 0.13, was skipped as non-English, and seven hand-read
+# names with it. Between GREY_ZONE_FLOOR and the threshold the words
+# themselves decide: the text is in Latin script and most of its longer
+# words are English words. Measured on the 1,102 files that scan skipped: of
+# the 281 at 0.10 or above, the screenshot is the only one this lets through
+# that holds a name (longer words 64% English); the foreign EULAs in Latin
+# script are at 7-25%, and those in other scripts keep only a brand name or
+# two in Latin letters. Below the floor nothing changes.
+GREY_ZONE_FLOOR = 0.10
+MIN_ENGLISH_VOCABULARY_SHARE = 0.60
+MIN_LATIN_LETTER_SHARE = 0.80
+_VOCABULARY_WORD_LENGTH = 4
+# A screen's worth of text, no more. Without this limit the same test let in
+# machine logs made of English tokens: one of 1.4 million words took ten
+# minutes in detection and held no name (first scan with the rule, stopped).
+MAX_WORDS_FOR_GREY_ZONE = 1000
+
 
 def is_short_non_prose(text: str, knowledge_base: KnowledgeBase) -> bool:
     """True for a document under MIN_WORDS_FOR_LANGUAGE_CHECK Latin-letter
@@ -79,7 +98,20 @@ def check_english(text: str, knowledge_base: KnowledgeBase) -> LanguageCheck:
     hits = sum(1 for w in words if knowledge_base.is_stopword(w))
     ratio = hits / len(words)
     return LanguageCheck(
-        is_english=ratio >= ENGLISH_WORD_RATIO_THRESHOLD,
+        is_english=ratio >= ENGLISH_WORD_RATIO_THRESHOLD or (
+            ratio >= GREY_ZONE_FLOOR and len(words) <= MAX_WORDS_FOR_GREY_ZONE
+            and _english_words_in_latin_script(text, words, knowledge_base)),
         english_word_ratio=round(ratio, 4),
         word_count=len(words),
     )
+
+
+def _english_words_in_latin_script(text: str, words: list[str], knowledge_base: KnowledgeBase) -> bool:
+    """See GREY_ZONE_FLOOR: the letters are Latin, and most of the longer
+    words are on the stopword or the ordinary-word list."""
+    letters = [ch for ch in text if ch.isalpha()]
+    if not letters or sum(ch.isascii() for ch in letters) < MIN_LATIN_LETTER_SHARE * len(letters):
+        return False
+    longer = [w for w in words if len(w) >= _VOCABULARY_WORD_LENGTH]
+    english = sum(1 for w in longer if knowledge_base.is_stopword(w) or knowledge_base.is_common_word(w))
+    return bool(longer) and english >= MIN_ENGLISH_VOCABULARY_SHARE * len(longer)

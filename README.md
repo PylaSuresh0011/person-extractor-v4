@@ -538,6 +538,44 @@ file - see below):
 | ACCEPTED only (auto-shipped) | 0.9598 | 0.9131 | 0.9359 |
 | ACCEPTED + REVIEW (what a human sees) | 0.9325 | 0.9625 | 0.9473 |
 
+**2026-10-13 - English that is not prose, and a line of 54,000 undecoded characters.**
+Seven of the hand-read names still missed in the case stand on one
+screenshot of an app screen - labels, titles and people's names. The scan
+had skipped it as non-English: 13% of its words are function words, the line
+is 15% (`language_filter.py`). Of the 1,102 files that scan skipped this way,
+nearly all are rightly skipped (EULAs and privacy policies in other
+languages, logs, dumps); 281 stand at 10% or more.
+- Between 10% and 15% a file is now English when its letters are Latin
+  (80%) and most of its words of four letters or more (60%) are English
+  words - and it holds at most 1,000 words, a screen's worth. The screenshot
+  has 64%; foreign EULAs in Latin script 7-25%; those in other scripts keep
+  only a brand name in Latin letters. The first version had no size limit
+  and let in machine logs made of English tokens - one of 1.4 million words,
+  ten minutes in detection, no name; that scan was stopped.
+- One newly read file of 840 words still took 610 seconds: the case holds it
+  twice, once padded with 54,184 NUL bytes, which `clean_text` strips, and
+  once with as many U+FFFD characters an earlier tool had made of them - one
+  line, on which the spaCy detector's time grew about twelvefold with each
+  doubling (0.05 s, 0.65 s, 8 s for 4,000, 8,000, 16,000 characters; the
+  regex and dictionary detectors 0.01 s). `clean_text` now removes a run of
+  eight or more U+FFFD. That file: 610 s -> 0.05 s, the same six detections.
+
+Case, rules only, against the last scan of 2026-10-12: hand-read names
+accepted 288 -> 292 of 365 (four names of that screenshot; of the other
+three, the OCR garbled two and one is two words no list holds), review 16,
+missed 61 -> 57; accepted rows 357 ->
+361, the 51 that match no hand-read name unchanged; 100 more files read, of
+which only the screenshot and its copy give a name. No other row of the
+names file changed, and the scan after the `clean_text` change is the same
+row for row. Textbooks and benchmark: not one row changed. 381 tests.
+
+Scan time 18.0 -> 22.0 minutes, and not from these changes: the 100 newly
+read files take 10 seconds of summed worker time. The 13,310 files read in
+both scans took 5,253 s summed on 2026-10-12 and 6,785 s now (the largest
+dump 385 s -> 578 s); why is not looked into. Outputs: `rules_20261013b`
+(before the `clean_text` change, 24.2 minutes), `rules_20261013c`;
+`rules_20261013a` is the stopped scan.
+
 **2026-10-12 - the case folder scanned again, against the 365 hand-read names.**
 The first full scan since 2026-10-01 14:48 - so the first with that
 afternoon's score decisions (round 3) and with the 2026-10-07 rules. Same
@@ -681,6 +719,21 @@ names accepted (81.6% against 78.9%), and 319 of 345 accepted rows on the
 hand-read list (92.5% against 85.7%). It still loses four names the rules
 accept ("Andrada", "Mclean Iqc", "Berger", "Bach"). Outputs:
 `rules_20261012g_llm`, `rules_20261012h_llm`. 376 tests.
+
+The three textbooks with the reviewer, after all of the day's rules
+(ACCEPTED rows; 281, 228 and 98 seconds a book):
+
+| | Fast: precision / recall | LLM reviewer: precision / recall | people found |
+|---|---|---|---|
+| 10th English | 89.4 / 81.4 | 92.4 / 87.5 (2026-10-01: 89.4 / 86.4) | 227 -> 244 of 279 |
+| 10th Social (provisional key) | 75.6 / 83.3 | 82.8 / 89.5 (2026-10-01: 79.9 / 86.7) | 175 -> 188 of 210 |
+| 9th English | 87.9 / 89.4 | 94.2 / 92.7 (2026-10-07: the same) | 110 -> 114 of 123 |
+
+In the Social book the reviewer took out 27 of the 34 labelled non-names
+the rules still accept ("Kashmir", "Krishna", "Panchayati Raj", "Dien Bien
+Phu") and accepted 23 right names from the review list ("Churchill",
+"Mountbatten", "T.N. Seshan"). Three people the rules accept are lost to it
+across the books ("G. Sreenivasa Rao", "Mr Sage", "Kundu Rano").
 
 Six rule changes for the other names lost or wrongly added - no list changed:
 

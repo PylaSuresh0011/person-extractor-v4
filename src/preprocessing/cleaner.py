@@ -13,6 +13,12 @@ import re
 import unicodedata
 
 _CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+# A long run of U+FFFD is padding an earlier tool decoded: a case folder held
+# the same file twice, once padded with 54,184 NUL bytes (stripped above) and
+# once with as many replacement characters. That one line took the spaCy
+# detector 610 seconds (2026-10-13). Eight or more - no single wrongly
+# decoded character gives that many.
+_UNDECODED_RUN_RE = re.compile("�{8,}")
 _TRAILING_SPACE_RE = re.compile(r"[ \t]+(?=\n)")
 
 
@@ -39,6 +45,7 @@ def clean_text(text: str) -> str:
 
     text = unicodedata.normalize("NFKC", text)
     text = _CONTROL_CHARS_RE.sub("", text)
+    text = _UNDECODED_RUN_RE.sub("", text)
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = _TRAILING_SPACE_RE.sub("", text)
     return text
