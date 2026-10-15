@@ -576,6 +576,19 @@ dump 385 s -> 578 s); why is not looked into. Outputs: `rules_20261013b`
 (before the `clean_text` change, 24.2 minutes), `rules_20261013c`;
 `rules_20261013a` is the stopped scan.
 
+With the LLM reviewer (2026-10-15, `rules_20261015a_llm`, 29.6 minutes):
+302 of 365 hand-read names accepted, 8 in review, 55 missed; 323 of the 349
+accepted rows are on the hand-read list (92.6%); 25 review rows. Against the
+reviewer's run of 2026-10-12 only the four screenshot names changed.
+
+Where the scan time goes (`rules_20261013c`): the 12 slowest files are 48% of
+all worker time, and 9 of them - three machine logs of 10-14 million
+characters and a one-line parameter file of 401,000, each stored two or
+three times - give no real name. The logs are slow from their size, at the
+spaCy detector's usual pace (about 25,000 characters a second; their longest
+line is 1,060-8,201 characters); only the one-line file shows the long-line
+slowdown, about 155 s a copy.
+
 **2026-10-12 - the case folder scanned again, against the 365 hand-read names.**
 The first full scan since 2026-10-01 14:48 - so the first with that
 afternoon's score decisions (round 3) and with the 2026-10-07 rules. Same
