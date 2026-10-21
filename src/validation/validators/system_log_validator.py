@@ -200,6 +200,32 @@ _LINE_SCAN_RADIUS = 150
 _UID_PKG_TABLE_ROW_RE = re.compile(r"^-Uid\s+\d+-Pkg\s")
 
 
+def _is_machine_line(line: str) -> bool:
+    """A line on which validate() refuses every candidate, wherever on the
+    line it stands: a log line, a UID/Pkg table row, or a line no longer
+    than _LINE_SCAN_RADIUS - so the window validate() scans around any
+    candidate on it is the whole line - that holds a package identifier."""
+    if _LOG_LINE_RE.match(line[:_LINE_PREFIX_WINDOW]) or _UID_PKG_TABLE_ROW_RE.match(line[:_LINE_SCAN_WINDOW]):
+        return True
+    return len(line) <= _LINE_SCAN_RADIUS and any(
+        not _is_hostname(m, line) for m in _PACKAGE_IDENTIFIER_RE.finditer(line))
+
+
+def blank_machine_lines(text: str) -> str:
+    """The text with each of those lines turned into spaces, its length and
+    line breaks kept, for the spaCy detector (2026-10-15): whatever it found
+    there would be refused here, and on a case scan three copies of one
+    Android log - 13.7 million characters, every line a log line - took 1,473
+    seconds of the scan's 8,567 in it, for no name."""
+    lines = text.split("\n")
+    blanked = False
+    for i, line in enumerate(lines):
+        if line.strip() and _is_machine_line(line):
+            lines[i] = " " * len(line)
+            blanked = True
+    return "\n".join(lines) if blanked else text
+
+
 class SystemLogValidator(BaseValidator):
     name = "system_log"
 

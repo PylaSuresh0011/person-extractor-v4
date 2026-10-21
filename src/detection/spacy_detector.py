@@ -23,6 +23,7 @@ from typing import Iterator
 from src.core.models import Detection, DetectorName
 from src.detection.base_detector import BaseDetector
 from src.utils.logger import get_logger
+from src.validation.validators.system_log_validator import blank_machine_lines
 
 logger = get_logger("detection.spacy_detector")
 
@@ -73,6 +74,38 @@ def iter_line_bounded_chunks(text: str, max_chars: int) -> Iterator[tuple[int, s
         yield buf_start, text[buf_start:offset]
 
 
+def iter_run_bounded_pieces(text: str, max_run: int) -> Iterator[tuple[int, str]]:
+    """Yield (offset, piece) pairs covering the whole of `text` so that no
+    piece holds a whitespace-free run longer than max_run characters.
+
+    spaCy's tokenizer strips the prefixes and suffixes off a
+    whitespace-free run one at a time, searching the rest of the run again
+    each time, so its cost grows much faster than the run's length: one
+    401,498-character run with no space in it (a one-line parameters file
+    in the 'corporate fraud' case) took 51 s in spaCy alone, 160 s per copy
+    in a parallel scan, for no name (measured 2026-10-15). Such a run is
+    cut after its last non-alphanumeric character before each max_run
+    limit, so no word is split (a hard cut only if the window has none);
+    the text around it is yielded unchanged. Concatenating the pieces
+    reconstructs `text` exactly.
+    """
+    pos = 0
+    for m in re.finditer(r"\S{%d,}" % (max_run + 1), text):
+        start = m.start()
+        if start > pos:
+            yield pos, text[pos:start]
+        while m.end() - start > max_run:
+            cut = max_run
+            while cut and text[start + cut - 1].isalnum():
+                cut -= 1
+            cut = cut or max_run
+            yield start, text[start:start + cut]
+            start += cut
+        pos = start
+    if pos < len(text):
+        yield pos, text[pos:]
+
+
 class SpacyDetector(BaseDetector):
     name = DetectorName.SPACY
 
@@ -93,6 +126,10 @@ class SpacyDetector(BaseDetector):
     # per-chunk cost by roughly a quarter on top of that, with byte-for-
     # byte identical entity output (verified).
     MAX_CHUNK_CHARS = 400_000
+
+    # Longest whitespace-free run handed to spaCy in one piece - see
+    # iter_run_bounded_pieces above.
+    MAX_RUN_CHARS = 10_000
 
     # Loaded pipelines by model name, shared across instances (model load is
     # slow). Keyed by name since 2026-09-25: model_name used to be accepted
@@ -146,10 +183,15 @@ class SpacyDetector(BaseDetector):
     def detect(self, text: str, page_index: int) -> list[Detection]:
         if not text.strip() or self._nlp is None:
             return []
+        # Lines of machine output on which SystemLogValidator refuses every
+        # candidate are blanked first, offsets kept (2026-10-15).
+        text = blank_machine_lines(text)
 
         chunks = [
-            (offset, chunk) for offset, chunk in iter_line_bounded_chunks(text, self.MAX_CHUNK_CHARS)
-            if chunk.strip()
+            (offset + sub, piece)
+            for offset, chunk in iter_line_bounded_chunks(text, self.MAX_CHUNK_CHARS)
+            for sub, piece in iter_run_bounded_pieces(chunk, self.MAX_RUN_CHARS)
+            if piece.strip()
         ]
 
         if self.n_process > 1 and len(chunks) > 1:

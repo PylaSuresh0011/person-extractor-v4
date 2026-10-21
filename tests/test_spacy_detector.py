@@ -84,6 +84,30 @@ def test_various_chunk_sizes_always_reconstruct(max_chars):
     assert _offsets_correct(text, max_chars)
 
 
+def test_long_whitespace_free_run_is_cut_after_punctuation_only():
+    from src.detection.spacy_detector import iter_run_bounded_pieces
+
+    run = ",".join(f"key{i}=value{i}" for i in range(60))  # 819 chars, no space
+    text = "Marcus Webb sent this:\n" + run + "\nRegards, Dana Okafor\n"
+    pieces = list(iter_run_bounded_pieces(text, max_run=100))
+
+    assert "".join(p for _, p in pieces) == text
+    assert all(text[o:o + len(p)] == p for o, p in pieces)
+    assert pieces[0] == (0, "Marcus Webb sent this:\n")
+    assert pieces[-1][1].endswith("\nRegards, Dana Okafor\n")
+    for _, piece in pieces[1:-1]:
+        assert len(piece) <= 100 and not piece[-1].isalnum()   # no word cut in half
+
+
+def test_text_without_long_runs_is_one_unchanged_piece():
+    from src.detection.spacy_detector import iter_run_bounded_pieces
+
+    text = "John Smith met Sarah Connor.\nhttps://example.com/a/b?c=d\n"
+    assert list(iter_run_bounded_pieces(text, max_run=100)) == [(0, text)]
+    blob = "A" * 250   # no punctuation at all: hard cuts
+    assert [p for _, p in iter_run_bounded_pieces(blob, max_run=100)] == ["A" * 100, "A" * 100, "A" * 50]
+
+
 def test_spacy_detector_finds_person_across_a_forced_chunk_boundary():
     """End-to-end: with a tiny MAX_CHUNK_CHARS forcing many chunks, a
     real name sitting near a chunk boundary must still be found at the

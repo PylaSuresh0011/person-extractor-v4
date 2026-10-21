@@ -314,6 +314,38 @@ def test_system_log_validator_still_rejects_lowercase_package_identifiers():
     assert not _validate_on_line("Handler", "vendor.qti.hardware.radio.ims Handler\n").passed
 
 
+MIXED = (
+    "2024-09-25 22:40:47,136 INFO/App: Marcus Webb opened the settings\n"
+    "-Uid    10294-Pkg com.truecaller-POL (8)\n"
+    "Wrapper android.os.Handler.dispatchMessage Rehan Pathan\n"
+    "Please call Marcus Webb about the payment tomorrow.\n"
+    "Contact Suresh Kumar at www.bvrit.ac.in for the forms.\n"
+)
+
+
+def test_blank_machine_lines_blanks_only_lines_the_validator_rejects_whole():
+    """(2026-10-15) The spaCy detector skips these lines; every candidate on
+    one is refused anyway, and every other line is left as it is."""
+    from src.validation.validators.system_log_validator import blank_machine_lines
+    blanked = blank_machine_lines(MIXED)
+    assert len(blanked) == len(MIXED)
+    old_lines, new_lines = MIXED.split("\n"), blanked.split("\n")
+    assert [n.strip() == "" for n in new_lines[:5]] == [True, True, True, False, False]
+    assert new_lines[3:] == old_lines[3:]
+    for name in ("Webb opened", "Pathan"):  # a candidate on a blanked line is refused
+        assert not _validate_on_line(name.split()[0], MIXED).passed
+    assert _validate_on_line("Suresh Kumar", MIXED).passed
+
+
+def test_a_long_line_with_a_package_is_left_for_the_window_check():
+    # The validator looks 150 characters around a candidate; on a longer line
+    # a name far from the package identifier still passes, so the line stays.
+    from src.validation.validators.system_log_validator import blank_machine_lines
+    line = "com.example.app.MainActivity started. " + "x " * 100 + "Then Marcus Webb signed the form."
+    assert blank_machine_lines(line) == line
+    assert _validate_on_line("Marcus Webb", line).passed
+
+
 def test_structure_validator_accepts_accented_latin_names():
     """Every accented name used to be hard-rejected here as a malformed
     token, even though RegexDetector found it correctly."""

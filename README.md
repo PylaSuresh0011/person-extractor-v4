@@ -538,6 +538,33 @@ file - see below):
 | ACCEPTED only (auto-shipped) | 0.9598 | 0.9131 | 0.9359 |
 | ACCEPTED + REVIEW (what a human sees) | 0.9325 | 0.9625 | 0.9473 |
 
+**2026-10-15 - the case scan 21% faster, the same names.**
+Two changes to what the spaCy detector reads, both where nothing it could
+find would be kept:
+- Lines on which `SystemLogValidator` refuses every candidate - log lines,
+  UID/Pkg table rows, and lines of at most 150 characters holding a package
+  identifier - are blanked before spaCy (`blank_machine_lines`, length and
+  line breaks kept). One Android log is 100% such lines (578 s -> 39 s a
+  copy); the 10-million-character ANR logs only 28% (531 s -> 453 s).
+- A whitespace-free run longer than 10,000 characters goes to spaCy in
+  pieces cut after punctuation (`iter_run_bounded_pieces`). spaCy's
+  tokenizer strips affixes off such a run one at a time, so its cost grows
+  faster than the run: the one-line parameter file, 401,498 characters with
+  no space, took 51 s alone and about 160 s a copy in the scan; now 3.7 s
+  alone, 10 s in the scan. 26 of the 13,410 files read hold such a run (727
+  s of scan time, 2 names).
+
+| case scan, rules only | 2026-10-13 | lines blanked | + long runs cut |
+|---|---|---|---|
+| wall time | 1,320 s | 1,104 s | 1,038 s |
+| summed worker time | 8,567 s | 6,942 s | 6,259 s |
+| names file | - | byte for byte the same | byte for byte the same |
+
+Every file found the same names; textbooks and benchmark not one row
+changed; 385 tests. What is left: the three ANR log copies (355-468 s each)
+are slow only from their size - normal lines, spaCy's usual pace. Outputs:
+`rules_20261015b`, `rules_20261015c`.
+
 **2026-10-13 - English that is not prose, and a line of 54,000 undecoded characters.**
 Seven of the hand-read names still missed in the case stand on one
 screenshot of an app screen - labels, titles and people's names. The scan
