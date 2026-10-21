@@ -1056,23 +1056,26 @@ writes its usual per-file and summary CSVs, with the raw detection count.
 One benchmark file: 118 raw detections become 82 candidate mentions of 33
 distinct names.
 
-**2026-09-28 - optional local-LLM reviewer (exp09, owner-approved trade).**
-On a machine with a GPU, each file's ACCEPTED names are checked by a local
-model (Llama 3.1 8B through Ollama; nothing leaves the machine): from up to
-three of a name's mentions it gives P(person), and below 0.3 the name moves
-to REVIEW - never rejected. Names in `assets/owner_decisions/confirmed_names.txt`
-(Alexa, Siri) are never moved. Every verdict is in the evidence trail with
-the model, its digest and the prompt version (`src/review/llm_reviewer.py`).
-- **When it runs:** only if Ollama answers (an installed but stopped Ollama
-  is started), the pinned model digest is installed, and the model loads on
-  a GPU. Otherwise the scan runs exactly as before, and its summary records
-  why (`provenance_llm_reviewer`). Live text (`server.py`) is never
-  reviewed. `--no-llm-review` turns it off for one run.
-- **Setup:** the tool never downloads anything. Once, with internet, run
-  `powershell -ExecutionPolicy Bypass -File scripts\setup_llm_reviewer.ps1`:
-  with a GPU it installs Ollama (winget) and pulls the model; without one
-  it installs nothing.
-- **Measured:** benchmark one false positive fewer (26 -> 25), nothing else
+**Optional LLM reviewer.** Each file's names can be checked from up to three
+mentions; its person probability adjusts the score, and every verdict is added
+to the evidence trail (`src/review/llm_reviewer.py`). Owner-confirmed names
+(`assets/owner_decisions/confirmed_names.txt`) are never lowered.
+- **Default provider: local Ollama** (Llama 3.1 8B; nothing leaves the
+  machine). It runs only if Ollama answers (an installed but stopped Ollama is
+  started), the pinned model digest is installed, and the model loads on a
+  GPU; otherwise the scan runs as without it and its summary records why
+  (`provenance_llm_reviewer`). One-time setup, with internet:
+  `powershell -ExecutionPolicy Bypass -File scripts\setup_llm_reviewer.ps1`.
+- **Optional provider: OpenRouter.** Set `provider` to `openrouter` in
+  `config.py` and `OPENROUTER_API_KEY` in the environment; optionally
+  `OPENROUTER_MODEL` (default `openai/gpt-4o-mini`) and `OPENROUTER_URL`
+  (default `https://openrouter.ai/api/v1`). The key is checked against
+  OpenRouter and is never logged.
+- **Privacy:** with OpenRouter, candidate names and their sentence excerpts
+  are sent to OpenRouter. Never use it for case files or anything else that
+  must stay on this machine. Live text (`server.py`) is never reviewed.
+  `--no-llm-review` turns the reviewer off for one run.
+- **Ollama measurement:** benchmark one false positive fewer (26 -> 25), nothing else
   changed; real case 14 accepted names -> REVIEW, all non-people (companies,
   places, interface style names, a gun calibre, a code identifier...),
   nothing real lost. The cost is time: full scan 16.2 -> 40.0 min. The model

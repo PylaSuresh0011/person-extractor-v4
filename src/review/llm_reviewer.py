@@ -1,10 +1,9 @@
 """
 src.review.llm_reviewer
 =========================
-Optional final check of each FILE's names by a local LLM, through Ollama
-(http://127.0.0.1:11434 - nothing leaves the machine). The tool never
-installs or downloads anything: scripts/setup_llm_reviewer.ps1 is the
-one-time setup, run by hand with internet, and only on a machine with a GPU.
+Optional final check of each FILE's names by an LLM, through either Ollama
+(local) or OpenRouter (remote). OpenRouter sends the selected name excerpts to
+the configured model, so use it only for data you can send to that service.
 
 Measured before it was built (experiments/llm_reviewer_probe.py, 2026-09-28,
 Llama 3.1 8B): of the ACCEPTED names in a real case scan, 13 of the 14 the
@@ -38,15 +37,14 @@ Names in assets/owner_decisions/confirmed_names.txt are never lowered. Every
 verdict goes into the evidence trail with the model, its digest and the
 prompt version.
 
-Active only when all of these hold - otherwise the pipeline runs exactly as
-without it and the reason is recorded in the run's provenance:
+Active only when all provider requirements hold - otherwise the pipeline runs
+exactly as without it and the reason is recorded in the run's provenance:
   - config llm_reviewer.enabled is "auto" or True (and the environment
     variable PERSON_EXTRACTOR_LLM_REVIEWER isn't "off" - the test suite
     sets it),
-  - Ollama answers (if it's installed but not running, it is started),
-  - the pinned model digest is installed,
-  - the model runs on a GPU (Ollama's /api/ps reports GPU memory) - on a
-    machine without one it is skipped, as it would be 10x slower.
+  - for OpenRouter, OPENROUTER_API_KEY is set and accepted by the API;
+  - for Ollama, Ollama answers (if installed but not running, it is started),
+    the pinned model digest is installed, and the model runs on a GPU.
 Live text (Pipeline.run_text, realtime sessions) is never reviewed - see
 PersonExtractor.extract.
 """
@@ -110,6 +108,9 @@ FEW_SHOT = (
     ("Godan", ["Premchand's novel [[Godan]] describes the life of a poor peasant."], "WORK"),
 )
 ENV_SWITCH = "PERSON_EXTRACTOR_LLM_REVIEWER"
+OPENROUTER_API_KEY = "OPENROUTER_API_KEY"
+OPENROUTER_DEFAULT_URL = "https://openrouter.ai/api/v1"
+OPENROUTER_DEFAULT_MODEL = "openai/gpt-4o-mini"
 MAX_EXCERPTS = 3
 EXCERPT_WIDTH = 120
 SENTENCE_MAX_CHARS = 220
@@ -151,6 +152,23 @@ def _request(url: str, payload: dict | None = None, timeout: float = 10.0) -> di
         return json.loads(resp.read())
 
 
+def _openrouter_request(url: str, payload: dict | None = None, timeout: float = 10.0,
+                        api_key: str | None = None) -> dict:
+    """Call OpenRouter without logging or exposing the API key."""
+    key = api_key or os.environ.get(OPENROUTER_API_KEY)
+    if not key:
+        raise urllib.error.URLError(f"{OPENROUTER_API_KEY} is not set")
+    data = json.dumps(payload).encode() if payload is not None else None
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
+                 "X-Title": "PERSON_EXTRACTOR_V4"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read())
+
+
 def _start_ollama(url: str) -> bool:
     """Starts an installed-but-stopped local Ollama server. Never installs."""
     exe = shutil.which("ollama") or str(Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama.exe")
@@ -181,6 +199,23 @@ def resolve_status(settings: dict) -> ReviewerStatus:
     enabled = settings.get("enabled", "auto")
     if enabled is False:
         return ReviewerStatus(False, "off (disabled in config)")
+    provider = settings.get("provider", "ollama").lower()
+    if provider == "openrouter":
+        key_env = settings.get("api_key_env", OPENROUTER_API_KEY)
+        api_key = os.environ.get(key_env)
+        if not api_key:
+            return ReviewerStatus(False, f"off ({key_env} is not set)")
+        base_url = os.environ.get(
+            "OPENROUTER_URL", settings.get("openrouter_url", OPENROUTER_DEFAULT_URL)
+        ).rstrip("/")
+        try:
+            _openrouter_request(f"{base_url}/key", api_key=api_key, timeout=10)
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            return ReviewerStatus(False, f"off (OpenRouter connection failed: {exc})")
+        model = os.environ.get("OPENROUTER_MODEL", settings.get("openrouter_model", OPENROUTER_DEFAULT_MODEL))
+        return ReviewerStatus(True, f"on (OpenRouter {model}; API key accepted)")
+    if provider != "ollama":
+        return ReviewerStatus(False, f"off (unknown LLM provider: {provider})")
     url, model, digest = settings["url"], settings["model"], settings["model_digest"]
     try:
         _request(f"{url}/api/version", timeout=2)
@@ -236,9 +271,19 @@ def _class_messages(name: str, sentences: list[str]) -> list[dict]:
 
 class LlmReviewer:
     def __init__(self, settings: dict, assets_dir: Path) -> None:
-        self.url = settings["url"]
-        self.model = settings["model"]
-        self.digest = settings["model_digest"]
+        self.provider = settings.get("provider", "ollama").lower()
+        if self.provider == "openrouter":
+            self.url = os.environ.get("OPENROUTER_URL", settings.get("openrouter_url", OPENROUTER_DEFAULT_URL)).rstrip("/")
+            self.model = os.environ.get("OPENROUTER_MODEL", settings.get("openrouter_model", OPENROUTER_DEFAULT_MODEL))
+            self.api_key_env = settings.get("api_key_env", OPENROUTER_API_KEY)
+            self.api_key = os.environ.get(self.api_key_env)
+            self.digest = "OpenRouter"
+        else:
+            self.url = settings["url"]
+            self.model = settings["model"]
+            self.api_key_env = ""
+            self.api_key = None
+            self.digest = settings["model_digest"]
         self.demote_below = settings.get("demote_below")
         self.promote_at_or_above = settings.get("promote_at_or_above")
         self.score_weight = settings.get("score_weight", DEFAULT_SCORE_WEIGHT)
@@ -247,16 +292,35 @@ class LlmReviewer:
         self.failed: str | None = None
         self.overrides: list[dict] = []
 
+    def _chat(self, messages: list[dict], top_logprobs: int = 20) -> dict:
+        if self.provider == "openrouter":
+            return _openrouter_request(
+                f"{self.url}/chat/completions",
+                {"model": self.model, "messages": messages, "stream": False, "logprobs": True,
+                 "top_logprobs": top_logprobs, "temperature": 0, "max_tokens": 1},
+                timeout=600, api_key=self.api_key,
+            )
+        return _request(f"{self.url}/api/chat", {
+            "model": self.model, "stream": False, "logprobs": True, "top_logprobs": top_logprobs,
+            "keep_alive": "30m", "messages": messages,
+            "options": {"temperature": 0, "seed": 0, "num_predict": 1},
+        }, timeout=600)
+
+    def _top_logprobs(self, reply: dict) -> list[dict]:
+        if self.provider == "openrouter":
+            return reply["choices"][0]["logprobs"]["content"][0]["top_logprobs"]
+        return reply["logprobs"][0]["top_logprobs"]
+
+    def _model_tag(self) -> str:
+        return self.model if self.provider == "openrouter" else f"{self.model} {self.digest[:12]}"
+
     def p_person(self, name: str, excerpts: list[str]) -> float:
         user = (f"Candidate: {name}\nExcerpts:\n" + "\n".join(f"{i}. {e}" for i, e in enumerate(excerpts, 1))
                 + f"\nIs [[{name}]] used as a person's name here?")
-        reply = _request(f"{self.url}/api/chat", {
-            "model": self.model, "stream": False, "logprobs": True, "top_logprobs": 10, "keep_alive": "30m",
-            "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}],
-            "options": {"temperature": 0, "seed": 0, "num_predict": 1},
-        }, timeout=600)
+        reply = self._chat([{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}],
+                           top_logprobs=10)
         yes = no = 0.0
-        for cand in reply["logprobs"][0]["top_logprobs"]:
+        for cand in self._top_logprobs(reply):
             token = cand["token"].strip().lower()
             if token in ("yes", "y"):
                 yes += math.exp(cand["logprob"])
@@ -266,13 +330,9 @@ class LlmReviewer:
 
     def classify(self, name: str, sentences: list[str]) -> dict[str, float]:
         """{class: probability} over CLASSES, from the first answer token."""
-        reply = _request(f"{self.url}/api/chat", {
-            "model": self.model, "stream": False, "logprobs": True, "top_logprobs": 20, "keep_alive": "30m",
-            "messages": _class_messages(name, sentences),
-            "options": {"temperature": 0, "seed": 0, "num_predict": 1},
-        }, timeout=600)
+        reply = self._chat(_class_messages(name, sentences))
         probs = dict.fromkeys(CLASSES, 0.0)
-        for cand in reply["logprobs"][0]["top_logprobs"]:
+        for cand in self._top_logprobs(reply):
             token = cand["token"].strip().upper()
             match = [c for c in CLASSES if len(token) >= 2 and c.startswith(token)]
             if len(match) == 1:
@@ -297,7 +357,7 @@ class LlmReviewer:
         for c in candidates:
             if c.state.person_score is not None and c.state.person_score >= REVIEW_AT - self.score_weight:
                 groups.setdefault(c.candidate.normalized_text, []).append(c)
-        tag = f"{self.model} {self.digest[:12]}, prompt {PROMPT_VERSION}"
+        tag = f"{self._model_tag()}, prompt {PROMPT_VERSION}"
         for name, group in groups.items():
             group.sort(key=lambda c: c.candidate.start)
             picks = sorted({0, len(group) // 2, len(group) - 1})[:MAX_EXCERPTS]
@@ -346,7 +406,7 @@ class LlmReviewer:
                     c.state.decision == Decision.REVIEW and self.promote_at_or_above is not None
                     and not (c.state.rejection_reason or "").startswith(_LONE_WORD_REASON_PREFIX)):
                 groups.setdefault((c.state.decision, c.candidate.normalized_text), []).append(c)
-        tag = f"{self.model} {self.digest[:12]}, prompt {PROMPT_VERSION}"
+        tag = f"{self._model_tag()}, prompt {PROMPT_VERSION}"
         for (decision, name), group in groups.items():
             group.sort(key=lambda c: c.candidate.start)
             picks = sorted({0, len(group) // 2, len(group) - 1})[:MAX_EXCERPTS]

@@ -53,13 +53,18 @@ DEFAULT_CONFIG = {
         "feature_score_gate": True,
     },
     "llm_reviewer": {
-        # Optional final check of each file's names by a local LLM (Ollama) -
-        # see src/review/llm_reviewer.py. "auto": used when Ollama runs the
-        # pinned model on a GPU, skipped otherwise (recorded in provenance).
-        # One-time setup on a GPU machine: scripts/setup_llm_reviewer.ps1.
+        # Optional final check of each file's names by an LLM - see
+        # src/review/llm_reviewer.py. Default: local Ollama ("auto": used when
+        # it runs the pinned model on a GPU; setup scripts/setup_llm_reviewer.ps1).
+        # "openrouter" sends names and excerpts off this PC - only for files
+        # that may leave it; its API key is read from api_key_env.
         "enabled": "auto",
+        "provider": "ollama",  # ollama | openrouter
+        "api_key_env": "OPENROUTER_API_KEY",
         "url": "http://127.0.0.1:11434",
-        "model": "llama3.1:latest",
+        "openrouter_url": "https://openrouter.ai/api/v1",
+        "openrouter_model": "openai/gpt-4o-mini",
+        "model": "llama3.1:latest",  # used by the Ollama provider
         "model_digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
         # With the score gate (default): P(person) moves the final score by
         # score_weight x (2p - 1), and the score decides. Without it:
