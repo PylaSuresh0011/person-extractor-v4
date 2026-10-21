@@ -76,6 +76,19 @@ traced to the evidence that accepted it) - these look at the one mention:
                   word of it passes the lowercase test ("Suicidal Tendency"
                   in a paper that writes both words in lowercase)
 
+2026-10-21 (reference lists in a case folder, rules only) - the mention:
+  journal         a word of a journal's abbreviated title: it ends in a
+                  period and the title runs on to the volume and pages
+                  ("Bull. Am. Meteorol. Soc. 86, 225", "J. Nucl. Mater.
+                  283-287, 762"), or medicine's style without periods ("N
+                  Engl j med; 341: 1583") - a cited author is followed by a
+                  comma or by initials instead
+  publisher       after the entry's year in brackets, right after "Town(,
+                  State):" or "Town, State," and running to the end of the
+                  entry ("Boston: Houghton Mifflin.", "Chichester, UK, John
+                  Wiley & Sons.") - the place lists miss most publishers'
+                  towns (Englewood Cliffs, Chichester), so the shape decides
+
 The word lists live in assets/entity_cues/. The lowercase, place_context and
 the rules let a mention through when a title or a relation word comes just
 before it ("Mr. Read", "his wife Rose") or a speech verb just after it
@@ -111,6 +124,31 @@ _LOCATED_BEFORE = re.compile(r"\b(?:[Ii]n|[Aa]t)(?:[ \t]+|[ \t]*\n[ \t]*)$")
 _PLACE_NAMED_BEFORE = re.compile(r"(?<![A-Za-z])([A-Z][A-Za-z]+(?:[ \t][A-Z][A-Za-z]+){0,2})[ \t]?\($")
 _PLACE_BEFORE = re.compile(r"\b(?:in|at|from|to|for|near|towards|via|reached|visited)[ \t]+$", re.IGNORECASE)
 _YEAR_AFTER = re.compile(r"^[ \t]*\((?:1[5-9]|20)\d\d\)")
+# Volume and pages, then the year in brackets or the end of the reference:
+# "86, 225 (2005)", "283-287, \n762 (2000)", "145; 78-86." - not "25, 30
+# people".
+_VOLUME_PAGES = (r"\d{1,4}(?:[ \t]*[–-][ \t]*\d{1,6})?[ \t]*[,;][ \t]*\n?[ \t]*\d{1,6}"
+                 r"(?:[ \t]*[–-][ \t]*\d{1,6})?[ \t]*\n?[ \t]*(?:\((?:1[5-9]|20)\d\d\)|[.;,]|\n|\Z)")
+# Matched at the end of the word: its period, up to five more title words,
+# the volume and pages ("Bull. Am. \nMeteorol. Soc. 86, 225 (2005)").
+_JOURNAL_AFTER = re.compile(r"\.(?:[ \t]*\n?[ \t]*[A-Z][A-Za-z\-]*\.?){0,5}[ \t]*\n?[ \t]*" + _VOLUME_PAGES)
+# Medicine's style: title words without periods, then "; volume: pages"
+# ("N Engl j med; 341: 1583-1589.", "N Engl J Med. 2001;345:12-19") - not
+# after initials ("Rao K. Aging. Lancet. 2001;345:12"), not a time ("10:30").
+_JOURNAL_NLM_AFTER = re.compile(
+    r"(?![ \t]+[A-Z]{1,3}[.,])(?:[ \t]+[A-Za-z]{1,8}\.?){1,4}[ \t]*[;.][ \t]*(?:(?:1[5-9]|20)\d\d[ \t]*;[ \t]*)?"
+    r"(?!\d{1,2}[ \t]*:[ \t]*[0-5]\d(?!\d))\d{1,4}(?:\(\d+\))?[ \t]*:[ \t]*\d{1,6}"
+    r"(?:[ \t]*[–-][ \t]*\d{1,6})?[ \t]*(?:[.;,]|\n|\Z)")
+_YEAR_IN_BRACKETS = re.compile(r"\((?:1[5-9]|20)\d\d[a-z]?\)")
+# A publisher's town right before the name: "Boston: ", "Englewood Cliffs,
+# NJ: ", "Chichester, UK, ".
+_PUBLISHER_TOWN_BEFORE = re.compile(
+    r"(?<![A-Za-z])[A-Z][A-Za-z]+(?:[ \t]+[A-Z][A-Za-z]+){0,2}(?:,[ \t]*[A-Z][A-Za-z.]{0,5})?[ \t]*[:,][ \t]*$")
+# The name, at most two more words ("& Sons", a wrapped "Hall"), then the
+# end of the entry: a period at the end of the line, or a blank line.
+_ENTRY_END_AFTER = re.compile(
+    r"(?:[ \t]*(?:&[ \t]*|-|[ \t]*\n[ \t]*)?[A-Z][A-Za-z]*){0,2}"
+    r"(?:[ \t]*\.[ \t]*(?:\n|\Z)|[ \t]*\n[ \t]*(?:\n|\Z)|[ \t]*\Z)")
 _NEXT_WORD = re.compile(r"^[ \t]+([A-Za-z]+)\.?")
 _ROMAN_HEADING = re.compile(r"^[IVX]{1,4}\.$")
 _INITIAL = re.compile(r"^[A-Z]\.?$")
@@ -127,6 +165,7 @@ ALL_CUES = frozenset({
     "lowercase", "vocabulary", "kinship", "contraction", "section_header", "place_suffix",
     "place_next", "year", "place_context", "quoted", "the", "group",
     "title_only", "time_words", "org_head", "geo", "region", "article", "place_alias",
+    "journal", "publisher",
 })
 _COMPASS = frozenset("north south east west northern southern eastern western central upper lower coastal".split())
 # Right before a name ("the river Ravi", "cyclone Aila"), or before "of
@@ -210,6 +249,11 @@ class EntityTypeValidator(BaseValidator):
                 return self._reject("place_next", f"followed by the place or building word '{nxt.group(1)}'")
         if "year" in cues and _YEAR_AFTER.match(after):
             return self._reject("year", "followed by a year in brackets, as a work title is")
+        if "journal" in cues and _journal_title_word(tokens, document_text, end):
+            return self._reject("journal", f"'{tokens[-1]}' is a word of a journal's abbreviated title, "
+                                           "before the volume and pages")
+        if "publisher" in cues and _publisher(document_text, start, end):
+            return self._reject("publisher", "a publisher - after the town, at the end of a reference")
         if "title_only" in cues and all(
                 w in knowledge_base.title_role_words or knowledge_base.is_title(w) or knowledge_base.is_honorific(w)
                 or _ROMAN_OR_LETTER.match(t) for t, w in zip(tokens, words)):
@@ -352,6 +396,26 @@ class EntityTypeValidator(BaseValidator):
 
     def _pass(self) -> ValidationResult:
         return ValidationResult(self.name, passed=True, score=0.0, message="No other entity type indicated")
+
+
+def _journal_title_word(tokens: list[str], text: str, end: int) -> bool:
+    """The last word is a journal title's (see _JOURNAL_AFTER) and any words
+    before it are initials ("J. Nucl. Mater. 283"). Not an initial or an
+    all-capitals group itself ("Lawrence MG. Bull Am Meteorol Soc.")."""
+    last = tokens[-1].rstrip(".")
+    if len(last) < 2 or last.isupper() or not all(_INITIAL.match(t) for t in tokens[:-1]):
+        return False
+    pos = end - 1 if text[end - 1:end] == "." else end
+    return bool(_JOURNAL_AFTER.match(text, pos) or _JOURNAL_NLM_AFTER.match(text, end))
+
+
+def _publisher(text: str, start: int, end: int) -> bool:
+    """After the year of a reference entry and a town, running to the end of
+    the entry - see _PUBLISHER_TOWN_BEFORE and _ENTRY_END_AFTER."""
+    line_start = text.rfind("\n", 0, start) + 1
+    before = text[max(line_start, start - 200):start]
+    town = _PUBLISHER_TOWN_BEFORE.search(before)
+    return bool(town and _YEAR_IN_BRACKETS.search(before, 0, town.start()) and _ENTRY_END_AFTER.match(text, end))
 
 
 def _in_quoted_title(text: str, start: int, end: int) -> bool:

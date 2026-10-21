@@ -538,6 +538,37 @@ file - see below):
 | ACCEPTED only (auto-shipped) | 0.9598 | 0.9131 | 0.9359 |
 | ACCEPTED + REVIEW (what a human sees) | 0.9325 | 0.9625 | 0.9473 |
 
+**2026-10-21 - journal titles and publishers in reference lists.**
+Scanned without the LLM reviewer, the case still accepted words of
+journal titles and publishers' names from three research papers: "Bull",
+"Mater", "Engl", "Houghton Mifflin", "John Wiley", "Prentice". Each had a
+name-list hit, spaCy's person tag and LightGBM 0.91-1.00; nothing looked at
+the reference around it. Two cues in `EntityTypeValidator`, both read off
+the one mention:
+- `journal`: the word ends in a period and the title runs on to the volume
+  and pages ("Bull. Am. Meteorol. Soc. 86, 225 (2005)", "J. Nucl. Mater.
+  283-287, 762"), or medicine's style without periods ("N Engl j med; 341:
+  1583-1589."). A cited author is followed by a comma or initials instead;
+  a time ("Ravi. 10:30") or a count ("Ravi. 25, 30 people") does not
+  match.
+- `publisher`: after the entry's year in brackets, right after "Town(,
+  State):" or "Town, State," and running to the end of the entry ("Boston:
+  Houghton Mifflin.", "Chichester, UK, John Wiley & Sons.", "Prentice" /
+  "Hall" wrapped before a blank line). The place lists know Boston but not
+  Englewood Cliffs or Chichester, so the shape decides, not the town.
+
+| measured | before | after |
+|---|---|---|
+| case, rules only: names that changed | - | 10, all wrong (6 accepted, 4 review: "J. Nucl", "J. Psych"...) |
+| case: hand-read names accepted / review / missed | 292 / 16 / 57 | 292 / 16 / 57 |
+| case: accepted rows on the hand-read list | 310 of 361 (85.9%) | 310 of 355 (87.3%) |
+| benchmark accepted P / R / FP | 0.9649 / 0.9064 / 44 | the same |
+| textbooks accepted P / R (english, social, english9) | 89.4/81.4, 75.6/83.3, 87.9/89.4 | the same |
+
+With the 8B reviewer these words were already moved out; the rules now do
+it without a GPU. 390 tests (`tests/test_reference_list_rules.py`). Output:
+`rules_20261021a`.
+
 **2026-10-15 - the case scan 21% faster, the same names.**
 Two changes to what the spaCy detector reads, both where nothing it could
 find would be kept:
